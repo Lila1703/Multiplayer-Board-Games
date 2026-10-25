@@ -1,0 +1,10 @@
+.hub { padding-top: 40px; }
+.hub .sub { color: var(--muted); margin: 6px 0 0; }
+.games { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-top: 28px; }
+.gamecard { font: inherit; text-align: left; color: var(--pip); background: var(--ivory); border: 0; border-radius: 18px;
+  padding: 22px; cursor: pointer; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); transition: transform 0.15s; }
+.gamecard:hover { transform: translateY(-3px); }
+.gamecard .icon { font-size: 2.4rem; }
+.gamecard h2 { margin: 10px 0 4px; font-size: 1.3rem; }
+.gamecard p { margin: 0 0 10px; }
+.gamecard .meta { color: #6b5c42; font-size: 0.9rem; }

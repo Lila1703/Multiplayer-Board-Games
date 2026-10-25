@@ -1,0 +1,17 @@
+.d3 { width: var(--s); height: var(--s); perspective: 400px; }
+.d3-cube { width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
+  transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.d3-face { position: absolute; inset: 0; border-radius: calc(var(--s) * 0.18); padding: calc(var(--s) * 0.14);
+  background: linear-gradient(145deg, #fbf5e6, #d9ccb0); display: grid;
+  grid-template: repeat(3, 1fr) / repeat(3, 1fr); backface-visibility: hidden;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12); }
+.d3-pip { border-radius: 50%; background: #2a1f1a; transform: scale(0.62); visibility: hidden; }
+.d3-pip.on { visibility: visible; }
+.d3-f1 .d3-pip.on { background: #b8432f; }
+.d3-f1 { transform: translateZ(calc(var(--s) / 2)); }
+.d3-f6 { transform: rotateY(180deg) translateZ(calc(var(--s) / 2)); }
+.d3-f3 { transform: rotateY(90deg) translateZ(calc(var(--s) / 2)); }
+.d3-f4 { transform: rotateY(-90deg) translateZ(calc(var(--s) / 2)); }
+.d3-f2 { transform: rotateX(90deg) translateZ(calc(var(--s) / 2)); }
+.d3-f5 { transform: rotateX(-90deg) translateZ(calc(var(--s) / 2)); }
+@media (prefers-reduced-motion: reduce) { .d3-cube { transition-duration: 0.01s; } }
