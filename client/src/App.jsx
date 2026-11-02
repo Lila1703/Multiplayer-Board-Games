@@ -18,11 +18,18 @@ export default function App() {
 
   return (
     <main className="hub">
-      <h1>Brettspiele</h1>
-      <p className="sub">Wähle ein Spiel. Alle spielen abwechselnd an einem Gerät.</p>
+      <div className="hub-head">
+        <span className="hub-logo" aria-hidden="true">🎲</span>
+        <div>
+          <h1>Brettspiele</h1>
+          <p className="sub">Lokal an einem Gerät oder online mit Freunden.</p>
+        </div>
+      </div>
+      <h2 className="section-label">Spiel auswählen</h2>
       <div className="games">
         {GAMES.map((g) => (
-          <button key={g.id} className="gamecard" onClick={() => setGameId(g.id)}>
+          <button key={g.id} className={"gamecard" + (g.id === "online" ? " featured" : "")} onClick={() => setGameId(g.id)}>
+            {g.id === "online" && <span className="badge">Neu</span>}
             <span className="icon">{g.icon}</span>
             <h2>{g.name}</h2>
             <p>{g.desc}</p>

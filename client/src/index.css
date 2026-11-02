@@ -1,111 +1,117 @@
+/* Globales Design-System: Farben, Typografie und gemeinsame Bausteine aller Spiele */
 :root {
-  --text: #6b6375;
-  --text-h: #08060d;
-  --bg: #fff;
-  --border: #e5e4e7;
-  --code-bg: #f4f3ec;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
-  --accent-border: rgba(170, 59, 255, 0.5);
-  --social-bg: rgba(244, 243, 236, 0.5);
-  --shadow:
-    rgba(0, 0, 0, 0.1) 0 10px 15px -3px, rgba(0, 0, 0, 0.05) 0 4px 6px -2px;
-
-  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --heading: system-ui, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, Consolas, monospace;
-
-  font: 18px/145% var(--sans);
-  letter-spacing: 0.18px;
-  color-scheme: light dark;
-  color: var(--text);
-  background: var(--bg);
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-
-  @media (max-width: 1024px) {
-    font-size: 16px;
-  }
+  --bg: #111317;
+  --bg-top: #1c1f25;
+  --surface: #1a1d23;
+  --surface-2: #22262d;
+  --surface-3: #2b3038;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.16);
+  --text: #e9ebef;
+  --muted: #959cab;
+  --accent: #f0b445;
+  --accent-ink: #1d1606;
+  --accent-soft: rgba(240, 180, 69, 0.14);
+  --danger: #e5574b;
+  --die: #f6f7f9;
+  --die-shade: #d5d9df;
+  --pip: #1d2026;
+  --radius: 14px;
+  --radius-lg: 20px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.28);
+  --shadow-lg: 0 24px 64px rgba(0, 0, 0, 0.5);
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color-scheme: dark;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --text: #9ca3af;
-    --text-h: #f3f4f6;
-    --bg: #16171d;
-    --border: #2e303a;
-    --code-bg: #1f2028;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
-    --accent-border: rgba(192, 132, 252, 0.5);
-    --social-bg: rgba(47, 48, 58, 0.5);
-    --shadow:
-      rgba(0, 0, 0, 0.4) 0 10px 15px -3px, rgba(0, 0, 0, 0.25) 0 4px 6px -2px;
-  }
-
-  #social .button-icon {
-    filter: invert(1) brightness(2);
-  }
-}
-
+*, *::before, *::after { box-sizing: border-box; }
 body {
-  margin: 0;
+  margin: 0; min-height: 100vh; color: var(--text); font: 15px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  background: var(--bg) radial-gradient(ellipse 90% 60% at 50% -10%, var(--bg-top) 0%, var(--bg) 70%) no-repeat;
 }
+#root { min-height: 100vh; }
+main { max-width: 1040px; margin: 0 auto; padding: 24px 20px 40px; }
+h1, h2, h3 { color: var(--text); letter-spacing: -0.02em; }
+h1 { font-size: 1.6rem; font-weight: 700; margin: 0; }
+b { font-weight: 650; }
 
-#root {
-  width: 1126px;
-  max-width: 100%;
-  margin: 0 auto;
-  text-align: center;
-  border-inline: 1px solid var(--border);
-  min-height: 100svh;
-  display: flex;
-  flex-direction: column;
-  box-sizing: border-box;
+/* Kopfzeile eines Spiels */
+header {
+  display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+  padding-bottom: 16px; margin-bottom: 4px; border-bottom: 1px solid var(--border);
 }
+header h1 { flex: 1; }
+.status { color: var(--muted); font-size: 0.92rem; }
+.status b { color: var(--accent); }
+.layout { display: grid; grid-template-columns: 1fr; gap: 20px; margin-top: 20px; }
+@media (min-width: 820px) { .layout { grid-template-columns: 340px 1fr; align-items: start; } }
 
-h1,
-h2 {
-  font-family: var(--heading);
-  font-weight: 500;
-  color: var(--text-h);
+/* Flächen */
+.tray, .panel {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
 }
+.tray { padding: 22px 16px 18px; text-align: center; }
 
-h1 {
-  font-size: 56px;
-  letter-spacing: -1.68px;
-  margin: 32px 0;
-  @media (max-width: 1024px) {
-    font-size: 36px;
-    margin: 20px 0;
-  }
+/* Buttons */
+button { font: inherit; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.roll {
+  font-weight: 700; font-size: 1.05rem; padding: 12px 32px; border-radius: 12px; border: 0; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink); box-shadow: 0 4px 14px rgba(240, 180, 69, 0.25);
+  transition: transform 0.12s, filter 0.12s;
 }
-h2 {
-  font-size: 24px;
-  line-height: 118%;
-  letter-spacing: -0.24px;
-  margin: 0 0 8px;
-  @media (max-width: 1024px) {
-    font-size: 20px;
-  }
+.roll:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+.roll:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
+.ghost {
+  background: transparent; border: 1px solid var(--border-strong); color: var(--muted);
+  border-radius: 10px; padding: 7px 14px; cursor: pointer; margin-top: 14px; font-size: 0.9rem;
+  transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
-p {
-  margin: 0;
-}
+.ghost:hover { color: var(--text); border-color: var(--muted); background: rgba(255, 255, 255, 0.04); }
+.controls { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.hint { color: var(--muted); font-size: 0.9rem; min-height: 1.3em; margin: 0; }
 
-code,
-.counter {
-  font-family: var(--mono);
-  display: inline-flex;
-  border-radius: 4px;
-  color: var(--text-h);
+/* Dialoge */
+.overlay {
+  position: fixed; inset: 0; background: rgba(8, 9, 12, 0.72); backdrop-filter: blur(6px);
+  display: flex; align-items: center; justify-content: center; padding: 20px; z-index: 20;
 }
+.card {
+  background: var(--surface); border: 1px solid var(--border); color: var(--text);
+  border-radius: var(--radius-lg); padding: 28px; max-width: 420px; width: 100%; text-align: center;
+  box-shadow: var(--shadow-lg); max-height: calc(100vh - 40px); overflow-y: auto;
+}
+.card h2 { margin: 0 0 6px; font-size: 1.4rem; }
+.card p { margin: 8px 0 16px; color: var(--muted); }
+.card p b { color: var(--text); }
+.opts { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 8px 0; }
+.opts button {
+  font-weight: 700; width: 52px; height: 52px; border-radius: 12px; cursor: pointer; font-size: 1.15rem;
+  border: 1px solid var(--border-strong); background: var(--surface-2); color: var(--text);
+  transition: background 0.12s, border-color 0.12s;
+}
+.opts button.wide { width: auto; height: 46px; padding: 0 20px; font-size: 0.95rem; }
+.opts button:hover:not(:disabled) { border-color: var(--accent); }
+.opts button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.opts button.on:hover:not(:disabled) { filter: brightness(1.06); }
+.opts button:disabled { opacity: 0.5; cursor: not-allowed; }
+.names { display: grid; gap: 8px; margin: 16px 0; }
+.names input {
+  font: inherit; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-strong);
+  background: var(--bg); color: var(--text); text-align: center; transition: border-color 0.12s;
+}
+.names input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
-code {
-  font-size: 15px;
-  line-height: 135%;
-  padding: 4px 8px;
-  background: var(--code-bg);
-}
+/* Tabellen (Kniffel-Block, Phase-10-Übersicht) */
+.sheet { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 0.92rem; font-variant-numeric: tabular-nums; }
+th, td { padding: 8px 12px; border-bottom: 1px solid var(--border); text-align: center; white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; font-weight: 500; }
+tbody tr:last-child td { border-bottom: 0; }
+thead th { background: var(--surface-2); color: var(--muted); font-weight: 600; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.04em; }
+th.active { background: var(--accent); color: var(--accent-ink); }
+tr.sum td { font-weight: 700; background: var(--surface-2); }
+td.active-col, tr.active-col td { background: var(--accent-soft); }
+tr.sep td { padding: 0; height: 2px; background: var(--border-strong); border: 0; }

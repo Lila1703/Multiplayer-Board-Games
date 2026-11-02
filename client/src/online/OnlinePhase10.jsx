@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { PHASES, groupLabel, info, canHit } from "../shared/phase10";
+import { PHASES, PHASE_NAMES, info, canHit, doneCards, runStarts, runOrder } from "../shared/phase10";
 import "./Phase10.css";
 
 const COL = ["red", "blue", "green", "yellow"];
@@ -10,12 +10,12 @@ const meldLabel = (m) => m.kind === "set" ? `Gleiche Zahl ${m.num}` : m.kind ===
 
 const TIPS = { w: "Joker: ersetzt jede beliebige Karte.", s: "Aussetzen: ein Mitspieler muss einmal aussetzen." };
 
-function Card({ id, sel, small, back, onClick }) {
+function Card({ id, sel, small, back, as, done, onClick }) {
   const c = back ? null : info(id);
-  const cls = "pcard" + (back ? " back" : c.t === "n" ? " " + COL[c.c] : c.t === "w" ? " wild" : " skip") + (sel ? " sel" : "") + (small ? " small" : "");
+  const cls = "pcard" + (back ? " back" : c.t === "n" ? " " + COL[c.c] : c.t === "w" ? " wild" : " skip") + (sel ? " sel" : "") + (done ? " done" : "") + (small ? " small" : "");
   return (
-    <button className={cls} disabled={!onClick} onClick={onClick} aria-label={back ? "Stapel" : label(id)} title={back ? undefined : TIPS[c.t]}>
-      {back ? "" : c.t === "n" ? c.n : c.t === "w" ? "W" : "⊘"}
+    <button className={cls} disabled={!onClick} onClick={onClick} aria-label={back ? "Stapel" : label(id)} title={back ? undefined : done ? "Gehört zu einer fertigen Gruppe deiner Phase." : c.t === "w" && as ? `Joker als ${as}` : TIPS[c.t]}>
+      {back ? "" : c.t === "n" ? c.n : c.t === "w" ? (as ? <>W<span className="as">{as}</span></> : "W") : "⊘"}
     </button>
   );
 }
@@ -26,16 +26,17 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
   const running = s.stage === "draw" || s.stage === "play";
   const myTurn = s.cur === mine && running;
   const [sel, setSel] = useState([]);
-  const [groups, setGroups] = useState([]);
+  const [pending, setPending] = useState(null); // Aktion, die erst nach Rückfrage ausgeführt wird
+  const [layChoice, setLayChoice] = useState(null); // Phase abgeben: wo liegen die Joker in den Folgen?
+  const [hitChoice, setHitChoice] = useState(null); // Joker an eine Folge: vorne oder hinten?
   const [err, setErr] = useState("");
   const [drawn, setDrawn] = useState(null); // die in diesem Zug gezogene Karte
 
-  // Auswahl und vorbereitete Gruppen an die aktuelle Hand anpassen
+  // Auswahl an die aktuelle Hand anpassen
   useEffect(() => {
     setSel((x) => x.filter((id) => s.hand.includes(id)));
-    setGroups((g) => g.map((gr) => gr.filter((id) => s.hand.includes(id))));
   }, [s.hand]);
-  useEffect(() => { setGroups([]); setSel([]); setErr(""); }, [s.handNo]);
+  useEffect(() => { setSel([]); setErr(""); setPending(null); }, [s.handNo]);
   useEffect(() => {
     setDrawn(s.stage === "play" && s.cur === mine ? s.hand[s.hand.length - 1] : null);
   }, [s.stage, s.cur, s.handNo]);
@@ -43,25 +44,34 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
   const act = (a, done) => socket.emit("p:act", a, (res) => {
     if (res?.error) setErr(res.error); else { setErr(""); done?.(); }
   });
-  const req = PHASES[Math.min(s.phases[mine], 10) - 1];
-  const staged = groups.flat();
-  const free = s.hand.filter((id) => !staged.includes(id)).sort((a, b) => sortKey(a) - sortKey(b));
+  const free = [...s.hand].sort((a, b) => sortKey(a) - sortKey(b));
   const drawnCard = drawn !== null && free.includes(drawn) ? drawn : null;
   const rest = free.filter((id) => id !== drawnCard);
+  const done = !s.laid[mine] && s.phases[mine] <= 10 ? doneCards(s.hand, s.phases[mine]) : { ids: new Set(), complete: false, groups: [] };
+  useEffect(() => { setPending(null); setLayChoice(null); setHitChoice(null); }, [myTurn, s.stage]);
   const toggle = (id) => setSel((x) => (x.includes(id) ? x.filter((i) => i !== id) : [...x, id]));
-  const assign = (i) => {
-    setGroups((g) => { const n = g.map((gr) => gr.filter((id) => !sel.includes(id))); n[i] = [...(n[i] || []), ...sel]; return n; });
-    setSel([]);
-  };
   const one = sel.length === 1 ? sel[0] : null;
   const isSkip = one !== null && info(one).t === "s";
   const who = room.players[s.cur];
-  const stagedReady = !s.laid[mine] && req && groups.length === req.length && req.every((_, i) => groups[i]?.length);
+  // Folgen mit Jokern am Rand können verschieden liegen – dann fragen wir nach
+  const layPhase = () => {
+    const reqs = PHASES[s.phases[mine] - 1];
+    const options = done.groups.map((g, i) => (reqs[i].k === "run" ? runStarts(reqs[i].n, g) : []));
+    if (options.some((o) => o.length > 1)) setLayChoice({ options, picked: options.map((o) => o[o.length - 1] ?? null) });
+    else act({ type: "lay", groups: done.groups });
+  };
+  const hit = (m, i) => {
+    if (m.kind === "run" && info(one).t === "w" && m.lo > 1 && m.hi < 12) setHitChoice({ meld: i, m, card: one });
+    else act({ type: "hit", meld: i, card: one });
+  };
+  // Wer seine fertige Phase nicht abgibt und stattdessen abwirft, wird vorher gefragt
+  const tryDiscard = (a) => (myTurn && s.stage === "play" && !s.laid[mine] && done.complete ? setPending(a) : act(a));
 
   const hint = err || (myTurn
     ? s.stage === "draw" ? "Ziehe vom Stapel oder nimm die oberste Karte der Ablage."
-      : s.laid[mine] ? "Karte wählen und auf eine Gruppe tippen (auch bei Mitspielern) – oder mehrere Karten als weitere Gruppe ablegen. Zum Schluss eine Karte abwerfen."
-      : "Wähle Karten und ordne sie den Gruppen deiner Phase zu – oder wirf eine Karte ab."
+      : s.laid[mine] ? "Karte wählen und auf eine Gruppe tippen, um sie anzulegen (auch bei Mitspielern). Zum Schluss eine Karte abwerfen oder alle Karten loswerden."
+      : done.complete ? "Deine Phase ist komplett – klicke auf „Phase abgeben“."
+      : "Wähle eine Karte zum Abwerfen."
     : running ? `${who.name} ist dran …` : "");
 
   return (
@@ -84,7 +94,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
       </table></div></section>
 
       <section className="panel">
-        <h3>Deine Phase {Math.min(s.phases[mine], 10)}: {req.map(groupLabel).join(" + ")}</h3>
+        <h3>Deine Phase {Math.min(s.phases[mine], 10)}: {PHASE_NAMES[Math.min(s.phases[mine], 10) - 1]}</h3>
         <div className="piles">
           <Card back onClick={myTurn && s.stage === "draw" ? () => act({ type: "draw", from: "deck" }) : undefined} />
           <Card id={s.discard} onClick={myTurn && s.stage === "draw" ? () => act({ type: "draw", from: "discard" }) : undefined} />
@@ -108,9 +118,9 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
                   const fits = canTap && canHit(m, one);
                   return (
                     <Tag key={i} className={"meld" + (canTap ? " tap" : "") + (fits ? " fit" : "")}
-                      onClick={canTap ? () => act({ type: "hit", meld: i, card: one }) : undefined}>
+                      onClick={canTap ? () => hit(m, i) : undefined}>
                       <small>{meldLabel(m)}</small>
-                      <div className="cards">{[...m.cards].sort((a, b) => sortKey(a) - sortKey(b)).map((id) => <Card key={id} id={id} small />)}</div>
+                      <div className="cards">{(m.kind === "run" ? m.cards : [...m.cards].sort((a, b) => sortKey(a) - sortKey(b))).map((id, k) => <Card key={id} id={id} small as={m.kind === "run" ? m.lo + k : undefined} />)}</div>
                     </Tag>
                   );
                 })}
@@ -122,42 +132,31 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
 
       <section className="panel">
         <h3>Deine Hand</h3>
+        {done.ids.size > 0 && (
+          <p className="legend">
+            Angehobene Karten gehören schon zu fertigen Gruppen deiner Phase – besser nicht abwerfen.
+            {done.complete && <b> Deine Phase ist komplett, du kannst sie abgeben!</b>}
+          </p>
+        )}
         {drawnCard !== null && (
           <div className="drawn">
             <span>Neu gezogen:</span>
-            <Card id={drawnCard} sel={sel.includes(drawnCard)} onClick={myTurn && s.stage === "play" ? () => toggle(drawnCard) : undefined} />
+            <Card id={drawnCard} sel={sel.includes(drawnCard)} done={done.ids.has(drawnCard)} onClick={myTurn && s.stage === "play" ? () => toggle(drawnCard) : undefined} />
           </div>
         )}
-        <div className="cards">{rest.map((id) => <Card key={id} id={id} sel={sel.includes(id)} onClick={myTurn && s.stage === "play" ? () => toggle(id) : undefined} />)}</div>
+        <div className="cards">{rest.map((id) => <Card key={id} id={id} sel={sel.includes(id)} done={done.ids.has(id)} onClick={myTurn && s.stage === "play" ? () => toggle(id) : undefined} />)}</div>
 
         {myTurn && s.stage === "play" && !s.laid[mine] && (
-          <>
-            {req.map((r, i) => (
-              <div className="row" key={i}>
-                <button disabled={!sel.length} onClick={() => assign(i)}>Auswahl → {groupLabel(r)}</button>
-                <span className="cards">{(groups[i] || []).map((id) => (
-                  <Card key={id} id={id} small onClick={() => setGroups((g) => g.map((gr, k) => (k === i ? gr.filter((x) => x !== id) : gr)))} />))}</span>
-              </div>
-            ))}
-            <div className="row"><button className="go" disabled={!stagedReady} onClick={() => act({ type: "lay", groups }, () => setGroups([]))}>Phase ablegen</button></div>
-          </>
-        )}
-
-        {myTurn && s.stage === "play" && s.laid[mine] && (
           <div className="row">
-            {[...new Set(req.map((r) => r.k))].filter((k) => k === "set" || k === "run").map((k) => (
-              <button key={k} disabled={sel.length < (k === "set" ? 3 : 4)}
-                onClick={() => act({ type: "extra", kind: k, ids: sel }, () => setSel([]))}>
-                Auswahl als weitere {k === "set" ? "Gruppe gleicher Zahl (ab 3)" : "Folge (ab 4)"} ablegen
-              </button>))}
+            <button className="go" disabled={!done.complete} onClick={layPhase}>Phase abgeben</button>
           </div>
         )}
 
         {myTurn && s.stage === "play" && (
           <div className="row">
-            {!isSkip && <button disabled={one === null} onClick={() => act({ type: "discard", card: one })}>Karte abwerfen</button>}
+            {!isSkip && <button disabled={one === null} onClick={() => tryDiscard({ type: "discard", card: one })}>Karte abwerfen</button>}
             {isSkip && room.players.map((p, i) => i !== mine && (
-              <button key={i} onClick={() => act({ type: "discard", card: one, target: i })}>Abwerfen – {p.name} setzt aus</button>))}
+              <button key={i} onClick={() => tryDiscard({ type: "discard", card: one, target: i })}>Abwerfen – {p.name} setzt aus</button>))}
           </div>
         )}
         <p className="msg">{hint}</p>
@@ -174,7 +173,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
               const here = room.players.filter((_, k) => s.phases[k] === n).map((p) => p.name);
               return (
                 <li key={n} className={n === s.phases[mine] ? "now" : n < s.phases[mine] ? "done" : ""}>
-                  <b>{n}.</b> {ph.map(groupLabel).join(" + ")}
+                  <b>{n}.</b> {PHASE_NAMES[i]}
                   {here.length > 0 && <small>{here.join(", ")}</small>}
                 </li>
               );
@@ -185,7 +184,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
           <h3>Sonderkarten</h3>
           <div className="special">
             <Card id={96} small />
-            <p><b>Joker</b> ersetzt jede beliebige Karte (Zahl und Farbe). Jede Gruppe braucht aber mindestens eine Zahlenkarte. Strafpunkte: 25.</p>
+            <p><b>Joker</b> ersetzt jede beliebige Karte (Zahl und Farbe). Jede Gruppe braucht aber mindestens eine Zahlenkarte. In einer Folge kannst du einen Joker gegen die passende Zahlenkarte austauschen und nimmst ihn auf die Hand. Strafpunkte: 25.</p>
           </div>
           <div className="special">
             <Card id={104} small />
@@ -194,6 +193,52 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
         </section>
       </aside>
       </div>
+
+      {pending && (
+        <div className="overlay"><div className="card">
+          <h2>Phase noch nicht abgegeben</h2>
+          <p>Du könntest jetzt deine Phase abgeben. Willst du stattdessen wirklich nur eine Karte abwerfen?</p>
+          <div className="opts">
+            <button className="wide on" onClick={() => { setPending(null); layPhase(); }}>Phase abgeben</button>
+            <button className="wide" onClick={() => { const a = pending; setPending(null); act(a); }}>Trotzdem abwerfen</button>
+          </div>
+          <button className="ghost" onClick={() => setPending(null)}>Zurück</button>
+        </div></div>
+      )}
+
+      {layChoice && (
+        <div className="overlay"><div className="card">
+          <h2>Wo sollen die Joker liegen?</h2>
+          <p>Deine Folge kann an verschiedenen Stellen beginnen. Wähle, wie du sie ablegen willst.</p>
+          {layChoice.options.map((starts, gi) => starts.length > 1 && (
+            <div className="choices" key={gi}>
+              {starts.map((st) => (
+                <button key={st} type="button" className={"choice" + (layChoice.picked[gi] === st ? " on" : "")}
+                  onClick={() => setLayChoice({ ...layChoice, picked: layChoice.picked.map((p, k) => (k === gi ? st : p)) })}>
+                  <small>Folge {st}–{st + done.groups[gi].length - 1}</small>
+                  <span className="cards">{runOrder(done.groups[gi], st).map((id, k) => <Card key={id} id={id} small as={st + k} />)}</span>
+                </button>
+              ))}
+            </div>
+          ))}
+          <div className="opts">
+            <button className="wide on" onClick={() => { const c = layChoice; setLayChoice(null); act({ type: "lay", groups: done.groups, starts: c.picked }); }}>Phase abgeben</button>
+          </div>
+          <button className="ghost" onClick={() => setLayChoice(null)}>Abbrechen</button>
+        </div></div>
+      )}
+
+      {hitChoice && (
+        <div className="overlay"><div className="card">
+          <h2>Joker anlegen</h2>
+          <p>An welches Ende der Folge {hitChoice.m.lo}–{hitChoice.m.hi} soll der Joker?</p>
+          <div className="opts">
+            <button className="wide" onClick={() => { const c = hitChoice; setHitChoice(null); act({ type: "hit", meld: c.meld, card: c.card, end: "lo" }); }}>Vorne als {hitChoice.m.lo - 1}</button>
+            <button className="wide" onClick={() => { const c = hitChoice; setHitChoice(null); act({ type: "hit", meld: c.meld, card: c.card, end: "hi" }); }}>Hinten als {hitChoice.m.hi + 1}</button>
+          </div>
+          <button className="ghost" onClick={() => setHitChoice(null)}>Abbrechen</button>
+        </div></div>
+      )}
 
       {!running && (
         <div className="overlay"><div className="card">

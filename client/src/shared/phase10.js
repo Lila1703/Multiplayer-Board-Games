@@ -6,8 +6,18 @@ export const PHASES = [
   [{ k: "set", n: 4 }, { k: "set", n: 4 }], [{ k: "color", n: 7 }],
   [{ k: "set", n: 5 }, { k: "set", n: 2 }], [{ k: "set", n: 5 }, { k: "set", n: 3 }],
 ];
-export const groupLabel = (r) =>
-  r.k === "set" ? `${r.n} gleiche Zahlen` : r.k === "run" ? `Folge à ${r.n}` : `${r.n} Karten einer Farbe`;
+export const PHASE_NAMES = [
+  "2 Drillinge",
+  "Drilling + Viererfolge",
+  "Vierling + Viererfolge",
+  "Siebenerfolge",
+  "Achterfolge",
+  "Neunerfolge",
+  "2 Vierlinge",
+  "7 Karten einer Farbe",
+  "Fünfling + Zwilling",
+  "Fünfling + Drilling",
+];
 
 export const info = (id) =>
   id < 96 ? { t: "n", c: Math.floor(id / 24), n: (id % 12) + 1 } : id < 104 ? { t: "w" } : { t: "s" };
@@ -34,6 +44,49 @@ export function createPhase10(names, opts = {}) {
   return s;
 }
 
+// Welche Handkarten gehören schon zu fertigen Gruppen der Phase? (für die Hervorhebung in der Hand)
+// Bei Folgen wird pro Zahl nur eine Karte gewählt; Joker nur, wenn sie wirklich gebraucht werden.
+export function doneCards(hand, phase) {
+  const reqs = PHASES[phase - 1];
+  if (!reqs) return { ids: new Set(), complete: false, groups: [] };
+  const nat = hand.filter((id) => info(id).t === "n");
+  const wild = hand.filter((id) => info(id).t === "w");
+  const candidates = (req, avail) => {
+    const A = nat.filter((id) => avail.has(id)), W = wild.filter((id) => avail.has(id)), out = [];
+    const add = (ids, missing) => { if (missing <= W.length) out.push([...ids, ...W.slice(0, missing)]); };
+    if (req.k === "run") {
+      for (let s = 1; s + req.n - 1 <= 12; s++) {
+        const ids = [];
+        for (let v = s; v < s + req.n; v++) { const f = A.find((id) => info(id).n === v); if (f !== undefined) ids.push(f); }
+        if (ids.length) add(ids, req.n - ids.length);
+      }
+    } else {
+      const groups = req.k === "set" ? 12 : 4;
+      for (let g = req.k === "set" ? 1 : 0; g < (req.k === "set" ? 13 : groups); g++) {
+        const L = A.filter((id) => (req.k === "set" ? info(id).n === g : info(id).c === g));
+        if (L.length) add(L.slice(0, req.n), req.n - Math.min(L.length, req.n));
+      }
+    }
+    return out;
+  };
+  let best = { n: -1, wilds: 0, ids: [], gs: [] };
+  const go = (i, avail, count, wilds, ids, gs) => {
+    if (i === reqs.length) {
+      if (count > best.n || (count === best.n && wilds < best.wilds)) best = { n: count, wilds, ids, gs };
+      return;
+    }
+    for (const g of candidates(reqs[i], avail)) {
+      const rest = new Set(avail);
+      g.forEach((id) => rest.delete(id));
+      go(i + 1, rest, count + 1, wilds + g.filter((id) => info(id).t === "w").length, [...ids, ...g], [...gs, g]);
+    }
+    go(i + 1, avail, count, wilds, ids, [...gs, null]);
+  };
+  go(0, new Set(hand), 0, 0, [], []);
+  // groups: eine fertige Kartengruppe pro Anforderung der Phase (in derselben Reihenfolge), sonst null
+  return { ids: new Set(best.ids), complete: best.n === reqs.length, groups: best.gs };
+}
+
 // Was Mitspieler sehen dürfen: nur die eigene Hand, von den anderen nur die Kartenzahl
 export function viewP10(s, pi) {
   const reveal = s.stage === "between" || s.stage === "over";
@@ -41,16 +94,43 @@ export function viewP10(s, pi) {
     deck: s.deck.length, discard: s.discard[s.discard.length - 1], discardCount: s.discard.length };
 }
 
-function makeMeld(req, ids, owner) {
+// Folge aus diesen Karten: Mit welchen Zahlen kann sie beginnen? Mehrere Möglichkeiten gibt es nur,
+// wenn Joker an den Rand gelegt werden (z. B. 5 6 7 + Joker = 4–7 oder 5–8).
+export function runStarts(n, ids) {
+  const cards = ids.map(info);
+  const ns = cards.filter((c) => c.t === "n").map((c) => c.n);
+  if (ids.length !== n || cards.some((c) => c.t === "s") || !ns.length || new Set(ns).size !== ns.length) return [];
+  const out = [];
+  for (let s = Math.max(1, Math.max(...ns) - n + 1); s <= Math.min(Math.min(...ns), 13 - n); s++) out.push(s);
+  return out;
+}
+
+// Karten einer Folge nach Position sortiert (ab start); Joker stehen an der Stelle der Zahl, die sie ersetzen
+export function runOrder(ids, start) {
+  const wilds = ids.filter((id) => info(id).t === "w");
+  const byNum = new Map(ids.filter((id) => info(id).t === "n").map((id) => [info(id).n, id]));
+  return ids.map((_, k) => byNum.get(start + k) ?? wilds.pop());
+}
+
+// start (nur Folgen, optional): gewünschte erste Zahl; ohne Angabe liegen Joker möglichst oben
+function makeMeld(req, ids, owner, start) {
   const cards = ids.map(info);
   const nat = cards.filter((c) => c.t === "n");
   if (ids.length !== req.n || cards.some((c) => c.t === "s") || nat.length === 0) return null;
   if (req.k === "set") return nat.every((c) => c.n === nat[0].n) ? { owner, kind: "set", num: nat[0].n, cards: ids } : null;
   if (req.k === "color") return nat.every((c) => c.c === nat[0].c) ? { owner, kind: "color", color: nat[0].c, cards: ids } : null;
-  const ns = nat.map((c) => c.n);
-  if (new Set(ns).size !== ns.length) return null;
-  const lo = Math.min(...ns), hi = Math.max(...ns), start = Math.min(lo, 13 - req.n);
-  return start + req.n - 1 >= hi ? { owner, kind: "run", lo: start, hi: start + req.n - 1, cards: ids } : null;
+  const starts = runStarts(req.n, ids);
+  if (!starts.length) return null;
+  const lo = start === undefined || start === null ? starts[starts.length - 1] : start;
+  if (!starts.includes(lo)) return null;
+  return { owner, kind: "run", lo, hi: lo + req.n - 1, cards: runOrder(ids, lo) };
+}
+
+// Folge: Steht an der Stelle der Zahl dieser Karte ein Joker? Dann darf man ihn austauschen. Gibt den Index zurück (sonst -1).
+export function jokerSlot(m, id) {
+  const c = info(id);
+  if (m.kind !== "run" || c.t !== "n" || c.n < m.lo || c.n > m.hi) return -1;
+  return info(m.cards[c.n - m.lo]).t === "w" ? c.n - m.lo : -1;
 }
 
 export function canHit(m, id) {
@@ -58,15 +138,16 @@ export function canHit(m, id) {
   if (c.t === "s") return false;
   if (m.kind === "set") return c.t === "w" || c.n === m.num;
   if (m.kind === "color") return c.t === "w" || c.c === m.color;
-  return c.t === "w" ? m.hi < 12 || m.lo > 1 : (c.n === m.hi + 1 && m.hi < 12) || (c.n === m.lo - 1 && m.lo > 1);
+  if (c.t === "w") return m.hi < 12 || m.lo > 1;
+  return (c.n === m.hi + 1 && m.hi < 12) || (c.n === m.lo - 1 && m.lo > 1) || jokerSlot(m, id) >= 0;
 }
 
-function applyHit(m, id) {
+// end (nur Joker an Folgen): "lo" = vorne anlegen, "hi" = hinten anlegen; ohne Angabe hinten, falls möglich
+function applyHit(m, id, end) {
   const c = info(id);
-  if (m.kind === "run") {
-    if (c.t === "w") { if (m.hi < 12) m.hi++; else m.lo--; } else if (c.n === m.hi + 1) m.hi++; else m.lo--;
-  }
-  m.cards.push(id);
+  if (m.kind !== "run") { m.cards.push(id); return; }
+  const atEnd = c.t === "w" ? m.hi < 12 && (end !== "lo" || m.lo === 1) : c.n === m.hi + 1;
+  if (atEnd) { m.hi++; m.cards.push(id); } else { m.lo--; m.cards.unshift(id); }
 }
 
 function advance(s) {
@@ -120,34 +201,30 @@ export function act(st, pi, a) {
     if (!Array.isArray(g) || g.length !== req.length) return err("Falsche Anzahl Gruppen.");
     const all = g.flat();
     if (new Set(all).size !== all.length || !all.every(has)) return err("Ungültige Karten.");
-    const melds = g.map((ids, i) => makeMeld(req[i], ids, pi));
+    const melds = g.map((ids, i) => makeMeld(req[i], ids, pi, a.starts?.[i]));
     if (melds.some((m) => !m)) return err("Diese Karten passen nicht zur Phase.");
     s.hands[pi] = hand.filter((id) => !all.includes(id));
     s.melds.push(...melds); s.laid[pi] = true; s.msg = `${s.names[pi]} legt Phase ${s.phases[pi]} ab.`;
-    if (!s.hands[pi].length) handEnd(s, pi);
+    if (!s.hands[pi].length) handEnd(s, pi); // ausgegangen
     else if (!s.scoring && s.laid.every(Boolean)) handEnd(s, null); // ohne Strafpunkte: sofort weiter, sobald alle ihre Phase haben
-    return { state: s };
-  }
-  if (a.type === "extra") {
-    // Weitere Gruppe nach der eigenen Phase: Gruppen gleicher Zahl (ab 3) oder Folgen (ab 4), je nachdem, was die Phase enthält
-    if (!s.laid[pi]) return err("Lege zuerst deine Phase ab.");
-    const min = { set: 3, run: 4 }[a.kind], ids = a.ids;
-    if (!min || !PHASES[s.phases[pi] - 1].some((r) => r.k === a.kind)) return err("Diese Art Gruppe ist in deiner Phase nicht erlaubt.");
-    if (!Array.isArray(ids) || ids.length < min || new Set(ids).size !== ids.length || !ids.every(has)) return err(`Du brauchst mindestens ${min} gültige Karten.`);
-    const m = makeMeld({ k: a.kind, n: ids.length }, ids, pi);
-    if (!m) return err("Diese Karten bilden keine gültige Gruppe.");
-    s.hands[pi] = hand.filter((id) => !ids.includes(id));
-    s.melds.push(m); s.msg = `${s.names[pi]} legt eine weitere Gruppe ab.`;
-    if (!s.hands[pi].length) handEnd(s, pi);
     return { state: s };
   }
   if (a.type === "hit") {
     if (!s.laid[pi]) return err("Lege zuerst deine Phase ab.");
     const m = s.melds[a.meld];
     if (!m || !has(a.card) || !canHit(m, a.card)) return err("Diese Karte passt dort nicht.");
-    applyHit(m, a.card);
+    const slot = jokerSlot(m, a.card);
+    if (slot >= 0) {
+      // Joker austauschen: Er wandert auf die Hand des Spielers
+      const joker = m.cards[slot];
+      m.cards[slot] = a.card;
+      s.hands[pi] = hand.filter((id) => id !== a.card).concat(joker);
+      s.msg = `${s.names[pi]} tauscht einen Joker aus.`;
+      return { state: s };
+    }
+    applyHit(m, a.card, a.end);
     s.hands[pi] = hand.filter((id) => id !== a.card);
-    if (!s.hands[pi].length) handEnd(s, pi);
+    if (!s.hands[pi].length) handEnd(s, pi); // ausgegangen
     return { state: s };
   }
   if (a.type === "discard") {
