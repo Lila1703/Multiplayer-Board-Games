@@ -6,6 +6,7 @@ import { randomBytes } from "crypto";
 import { Server } from "socket.io";
 import { createGame, roll, afterWait, move, movable } from "../client/src/shared/ludo.js";
 import { createKniffel, kRoll, kHold, kPick } from "../client/src/shared/kniffel.js";
+import { createPhase10, act as p10act, viewP10 } from "../client/src/shared/phase10.js";
 
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "../client/dist");
 const app = express();
@@ -21,9 +22,13 @@ const newCode = () => {
   while (rooms.has(c));
   return c;
 };
-const push = (r) => io.to(r.code).emit("room", {
-  code: r.code, game: r.game, state: r.state, players: r.players.map((p) => ({ name: p.name, connected: p.connected })),
-});
+const push = (r) => {
+  const base = { code: r.code, game: r.game, players: r.players.map((p) => ({ name: p.name, connected: p.connected })) };
+  if (r.game === "phase10" && r.state) {
+    // Jeder bekommt nur seine eigene Hand zu sehen
+    r.players.forEach((p, i) => p.sid && io.to(p.sid).emit("room", { ...base, state: viewP10(r.state, i) }));
+  } else io.to(r.code).emit("room", { ...base, state: r.state });
+};
 
 io.on("connection", (socket) => {
   let room = null, me = null;
@@ -32,7 +37,7 @@ io.on("connection", (socket) => {
     let p = token && r.players.find((x) => x.token === token);
     if (!p) {
       if (r.state) return ack({ error: "Das Spiel läuft schon." });
-      if (r.players.length >= 4) return ack({ error: "Der Raum ist voll." });
+      if (r.players.length >= (r.game === "phase10" ? 6 : 4)) return ack({ error: "Der Raum ist voll." });
       p = { token: randomBytes(8).toString("hex"), name: (name || "").trim().slice(0, 16) || `Spieler ${r.players.length + 1}` };
       r.players.push(p);
     }
@@ -43,7 +48,7 @@ io.on("connection", (socket) => {
   }
 
   socket.on("create", ({ name, game }, ack) => {
-    const r = { code: newCode(), game: game === "kniffel" ? "kniffel" : "ludo", players: [], state: null };
+    const r = { code: newCode(), game: ["kniffel", "phase10"].includes(game) ? game : "ludo", players: [], state: null };
     rooms.set(r.code, r);
     join(r, name, null, ack);
   });
@@ -52,10 +57,11 @@ io.on("connection", (socket) => {
     if (!r) return ack({ error: "Raum nicht gefunden." });
     join(r, name, token, ack);
   });
-  socket.on("start", () => {
+  socket.on("start", (opts) => {
     if (!room || room.players[0] !== me || room.players.length < 2) return;
+    if (opts && typeof opts === "object") room.opts = { scoring: !!opts.scoring }; // beim "Nochmal spielen" bleibt die letzte Wahl
     const names = room.players.map((p) => p.name);
-    room.state = room.game === "kniffel" ? createKniffel(names) : createGame(names);
+    room.state = room.game === "kniffel" ? createKniffel(names) : room.game === "phase10" ? createPhase10(names, room.opts) : createGame(names);
     push(room);
   });
   socket.on("roll", () => {
@@ -90,6 +96,13 @@ io.on("connection", (socket) => {
     const s = kTurn();
     const n = s ? kPick(s, String(cat)) : null;
     if (n) { room.state = n; push(room); }
+  });
+  socket.on("p:act", (a, ack) => {
+    const r = room;
+    if (r?.game !== "phase10" || !r.state || !a) return ack?.({ error: "Kein Phase-10-Spiel." });
+    const res = p10act(r.state, r.players.indexOf(me), a);
+    if (res.error) return ack?.({ error: res.error });
+    r.state = res.state; push(r); ack?.({});
   });
   socket.on("disconnect", () => {
     const r = room;
