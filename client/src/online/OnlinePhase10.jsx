@@ -247,7 +247,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
             <span key={i}>{n}: {s.scoring ? `+${s.points[i]} (gesamt ${s.scores[i]}) – ` : ""}{s.laid[i] ? "Phase geschafft" : "Phase nicht geschafft"} – {s.phases[i] > 10 ? "alle Phasen durch" : s.laid[i] ? `weiter mit Phase ${s.phases[i]}` : `bleibt bei Phase ${s.phases[i]}`}<br /></span>))}</p>
           {s.stage === "between" && <div className="opts"><button className="wide on" onClick={() => act({ type: "next" })}>Nächste Runde</button></div>}
           {s.stage === "over" && (me.index === 0
-            ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button></div>
+            ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>
             : <p>Warte auf den Host …</p>)}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>
         </div></div>

@@ -6,7 +6,7 @@ import "./App.css";
 
 // Neues Spiel hinzufügen: Komponente bauen und hier eintragen
 const GAMES = [
-  { id: "online", name: "Online spielen", icon: "🌐", players: "2–4 Spieler, jeder am eigenen Gerät", desc: "Mensch ärgere dich nicht, Kniffel oder Phase 10 per Einladungslink.", Component: Online },
+  { id: "online", name: "Online spielen", icon: "🌐", players: "2–8 Spieler, jeder am eigenen Gerät", desc: "Mensch ärgere dich nicht, Kniffel, Phase 10, Schwimmen oder Zauberstich per Einladungslink.", Component: Online },
   { id: "ludo", name: "Mensch ärgere dich nicht", icon: "♟️", players: "2–4 Spieler", desc: "Würfeln, ziehen, rauswerfen.", Component: Ludo },
   { id: "kniffel", name: "Kniffel", icon: "🎲", players: "1–4 Spieler", desc: "Würfeln, festhalten, punkten.", Component: Kniffel },
 ];

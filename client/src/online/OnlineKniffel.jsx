@@ -105,7 +105,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
           <h2>{winners.map((p) => p.name).join(" und ")} {winners.length > 1 ? "gewinnen" : "gewinnt"}!</h2>
           <p>{ranked.map((p) => <span key={p.name}>{p.name}: <b>{total(p)}</b><br /></span>)}</p>
           {me.index === 0
-            ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button></div>
+            ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>
             : <p>Warte auf den Host …</p>}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>
         </div></div>

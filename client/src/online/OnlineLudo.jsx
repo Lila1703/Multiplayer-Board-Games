@@ -86,7 +86,7 @@ export default function OnlineLudo({ room, me, socket, onLeave }) {
       {s.winner !== null && settled && (
         <div className="overlay"><div className="card">
           <h2>{s.names[s.winner]} gewinnt!</h2>
-          {me.index === 0 && <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button></div>}
+          {me.index === 0 && <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>}
           {me.index !== 0 && <p>Warte auf den Host …</p>}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>
         </div></div>

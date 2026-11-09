@@ -7,6 +7,15 @@ import { Server } from "socket.io";
 import { createGame, roll, afterWait, move, movable } from "../client/src/shared/ludo.js";
 import { createKniffel, kRoll, kHold, kPick } from "../client/src/shared/kniffel.js";
 import { createPhase10, act as p10act, viewP10 } from "../client/src/shared/phase10.js";
+import { createSchwimmen, act as swAct, viewSchwimmen } from "../client/src/shared/schwimmen.js";
+import { createZauberstich, act as srAct, collect as srCollect, viewZauberstich } from "../client/src/shared/zauberstich.js";
+
+const VIEWS = { phase10: viewP10, schwimmen: viewSchwimmen, zauberstich: viewZauberstich };
+const GAMES = ["ludo", "kniffel", "phase10", "schwimmen", "zauberstich"];
+const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6 };
+// Ist das laufende Spiel zu Ende? (dann darf der Host zurück in die Lobby)
+const isOver = (r) => !r.state || (r.game === "kniffel" ? r.state.over
+  : ["phase10", "schwimmen", "zauberstich"].includes(r.game) ? r.state.stage === "over" : r.state.winner !== null);
 
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "../client/dist");
 const app = express();
@@ -24,9 +33,10 @@ const newCode = () => {
 };
 const push = (r) => {
   const base = { code: r.code, game: r.game, players: r.players.map((p) => ({ name: p.name, connected: p.connected })) };
-  if (r.game === "phase10" && r.state) {
+  const view = VIEWS[r.game];
+  if (view && r.state) {
     // Jeder bekommt nur seine eigene Hand zu sehen
-    r.players.forEach((p, i) => p.sid && io.to(p.sid).emit("room", { ...base, state: viewP10(r.state, i) }));
+    r.players.forEach((p, i) => p.sid && io.to(p.sid).emit("room", { ...base, state: view(r.state, i) }));
   } else io.to(r.code).emit("room", { ...base, state: r.state });
 };
 
@@ -37,7 +47,7 @@ io.on("connection", (socket) => {
     let p = token && r.players.find((x) => x.token === token);
     if (!p) {
       if (r.state) return ack({ error: "Das Spiel läuft schon." });
-      if (r.players.length >= (r.game === "phase10" ? 6 : 4)) return ack({ error: "Der Raum ist voll." });
+      if (r.players.length >= MAX_PLAYERS[r.game]) return ack({ error: "Der Raum ist voll." });
       p = { token: randomBytes(8).toString("hex"), name: (name || "").trim().slice(0, 16) || `Spieler ${r.players.length + 1}` };
       r.players.push(p);
     }
@@ -48,7 +58,7 @@ io.on("connection", (socket) => {
   }
 
   socket.on("create", ({ name, game }, ack) => {
-    const r = { code: newCode(), game: ["kniffel", "phase10"].includes(game) ? game : "ludo", players: [], state: null };
+    const r = { code: newCode(), game: GAMES.includes(game) ? game : "ludo", players: [], state: null };
     rooms.set(r.code, r);
     join(r, name, null, ack);
   });
@@ -59,10 +69,21 @@ io.on("connection", (socket) => {
   });
   socket.on("start", (opts) => {
     if (!room || room.players[0] !== me || room.players.length < 2) return;
-    if (opts && typeof opts === "object") room.opts = { scoring: !!opts.scoring }; // beim "Nochmal spielen" bleibt die letzte Wahl
+    if (opts && typeof opts === "object") room.opts = { scoring: !!opts.scoring, noEven: opts.noEven !== false }; // beim "Nochmal spielen" bleibt die letzte Wahl
     const names = room.players.map((p) => p.name);
-    room.state = room.game === "kniffel" ? createKniffel(names) : room.game === "phase10" ? createPhase10(names, room.opts) : createGame(names);
+    room.state = room.game === "kniffel" ? createKniffel(names) : room.game === "phase10" ? createPhase10(names, room.opts)
+      : room.game === "schwimmen" ? createSchwimmen(names)
+      : room.game === "zauberstich" ? createZauberstich(names, room.opts) : createGame(names);
     push(room);
+  });
+  // Nach Spielende: alle zurück in die Lobby desselben Raums, dort wählt der Host das nächste Spiel
+  socket.on("lobby", () => {
+    if (!room || room.players[0] !== me || !isOver(room)) return;
+    room.state = null; push(room);
+  });
+  socket.on("game", (game) => {
+    if (!room || room.players[0] !== me || room.state || !GAMES.includes(game) || room.players.length > MAX_PLAYERS[game]) return;
+    room.game = game; room.opts = undefined; push(room);
   });
   socket.on("roll", () => {
     const r = room, s = r?.state;
@@ -103,6 +124,25 @@ io.on("connection", (socket) => {
     const res = p10act(r.state, r.players.indexOf(me), a);
     if (res.error) return ack?.({ error: res.error });
     r.state = res.state; push(r); ack?.({});
+  });
+  socket.on("s:act", (a, ack) => {
+    const r = room;
+    if (r?.game !== "schwimmen" || !r.state || !a) return ack?.({ error: "Kein Schwimmen-Spiel." });
+    const res = swAct(r.state, r.players.indexOf(me), a);
+    if (res.error) return ack?.({ error: res.error });
+    r.state = res.state; push(r); ack?.({});
+  });
+  socket.on("w:act", (a, ack) => {
+    const r = room;
+    if (r?.game !== "zauberstich" || !r.state || !a) return ack?.({ error: "Kein Zauberstich-Spiel." });
+    const res = srAct(r.state, r.players.indexOf(me), a);
+    if (res.error) return ack?.({ error: res.error });
+    r.state = res.state; push(r); ack?.({});
+    // Voller Stich bleibt kurz liegen, damit alle ihn sehen
+    if (r.state.stage === "show") {
+      const st = r.state;
+      setTimeout(() => { if (r.state === st) { r.state = srCollect(st); push(r); } }, 1800);
+    }
   });
   socket.on("disconnect", () => {
     const r = room;

@@ -3,8 +3,11 @@ import { io } from "socket.io-client";
 import OnlineLudo from "./OnlineLudo";
 import OnlineKniffel from "./OnlineKniffel";
 import OnlinePhase10 from "./OnlinePhase10";
+import OnlineSchwimmen from "./OnlineSchwimmen";
+import OnlineZauberstich from "./OnlineZauberstich";
 
-const GAME_NAMES = { ludo: "Mensch ärgere dich nicht", kniffel: "Kniffel", phase10: "Phase 10" };
+const GAME_NAMES = { ludo: "Mensch ärgere dich nicht", kniffel: "Kniffel", phase10: "Phase 10", schwimmen: "Schwimmen", zauberstich: "Zauberstich" };
+const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6 };
 
 const socket = io({ autoConnect: false });
 const hashCode = () => (location.hash.startsWith("#join=") ? location.hash.slice(6).toUpperCase() : "");
@@ -16,6 +19,7 @@ export default function Online({ onBack }) {
   const [name, setName] = useState(localStorage.getItem("name") || "Spieler");
   const [code, setCode] = useState(hashCode());
   const [scoring, setScoring] = useState(false); // Phase 10: mit Strafpunkten?
+  const [noEven, setNoEven] = useState(true); // Zauberstich: Ansagen dürfen nicht aufgehen?
 
   useEffect(() => {
     const rejoin = () => {
@@ -49,7 +53,7 @@ export default function Online({ onBack }) {
   const link = room ? `${location.origin}${location.pathname}#join=${room.code}` : "";
 
   if (room && me && room.state) {
-    const View = { kniffel: OnlineKniffel, phase10: OnlinePhase10 }[room.game] || OnlineLudo;
+    const View = { kniffel: OnlineKniffel, phase10: OnlinePhase10, schwimmen: OnlineSchwimmen, zauberstich: OnlineZauberstich }[room.game] || OnlineLudo;
     return <View room={room} me={me} socket={socket} onLeave={leave} />;
   }
 
@@ -66,6 +70,8 @@ export default function Online({ onBack }) {
             <button className="wide on" onClick={() => enter("create", { game: "ludo" })}>Mensch ärgere dich nicht</button>
             <button className="wide on" onClick={() => enter("create", { game: "kniffel" })}>Kniffel</button>
             <button className="wide on" onClick={() => enter("create", { game: "phase10" })}>Phase 10</button>
+            <button className="wide on" onClick={() => enter("create", { game: "schwimmen" })}>Schwimmen</button>
+            <button className="wide on" onClick={() => enter("create", { game: "zauberstich" })}>Zauberstich</button>
           </div>
           <p>oder mit Code beitreten</p>
           <div className="names">
@@ -87,6 +93,14 @@ export default function Online({ onBack }) {
           ))}</p>
           {me.index === 0 ? (
             <>
+              <p>Spiel:</p>
+              <div className="opts">
+                {Object.entries(GAME_NAMES).map(([id, label]) => (
+                  <button key={id} type="button" className={"wide" + (room.game === id ? " on" : "")}
+                    disabled={room.players.length > MAX_PLAYERS[id]} title={room.players.length > MAX_PLAYERS[id] ? `Höchstens ${MAX_PLAYERS[id]} Spieler` : undefined}
+                    onClick={() => socket.emit("game", id)}>{label}</button>
+                ))}
+              </div>
               {room.game === "phase10" && (
                 <>
                   <p>Spielmodus:</p>
@@ -99,8 +113,20 @@ export default function Online({ onBack }) {
                     : "Keine Punkte: Jeder rückt weiter, sobald er seine Phase geschafft hat. Wer zuerst Phase 10 schafft, gewinnt."}</p>
                 </>
               )}
+              {room.game === "zauberstich" && (
+                <>
+                  <p>Ansagen:</p>
+                  <div className="opts">
+                    <button type="button" className={"wide" + (noEven ? " on" : "")} onClick={() => setNoEven(true)}>Dürfen nicht aufgehen</button>
+                    <button type="button" className={"wide" + (!noEven ? " on" : "")} onClick={() => setNoEven(false)}>Frei</button>
+                  </div>
+                  <p>{noEven
+                    ? "Wer zuletzt ansagt, darf nicht so ansagen, dass die Summe aller Ansagen genau der Stichzahl der Runde entspricht – mindestens einer liegt also immer daneben."
+                    : "Jeder darf frei ansagen, auch der Letzte."}</p>
+                </>
+              )}
               <div className="opts">
-                <button className="wide on" disabled={room.players.length < 2} onClick={() => socket.emit("start", { scoring })}>
+                <button className="wide on" disabled={room.players.length < 2} onClick={() => socket.emit("start", { scoring, noEven })}>
                   {room.players.length < 2 ? "Warte auf Mitspieler …" : "Spiel starten"}
                 </button>
               </div>
