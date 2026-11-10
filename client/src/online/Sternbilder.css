@@ -1,0 +1,137 @@
+.sb { max-width: 1200px; }
+.sb .panel { padding: 16px 18px; margin-top: 16px; }
+.sb .panel h3 { margin: 0 0 12px; font-size: 0.8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.sb .msg { color: var(--accent); min-height: 1.3em; margin: 10px 0 0; }
+.sb .note { color: var(--muted); font-size: 0.88rem; margin: 0; }
+.sb .note b { color: var(--text); }
+.sb .final { color: var(--accent); font-weight: 700; }
+.sb-layout { display: grid; gap: 16px; margin-top: 20px; }
+.sb-main > .panel:first-child { margin-top: 0; }
+@media (min-width: 960px) {
+  .sb-layout { grid-template-columns: minmax(0, 1fr) 300px; }
+  .sb-side { position: sticky; top: 12px; align-self: start; }
+}
+.sb-side .panel { margin-top: 0; margin-bottom: 12px; }
+.sb .rules p { margin: 0 0 8px; color: var(--muted); font-size: 0.88rem; }
+.sb .rules b { color: var(--text); }
+
+/* Nachthimmel mit ein paar gemalten Sternen */
+.sb .sky { background:
+    radial-gradient(1.5px 1.5px at 12% 22%, #fff8, transparent), radial-gradient(1px 1px at 33% 68%, #fff9, transparent),
+    radial-gradient(1.5px 1.5px at 58% 18%, #fff7, transparent), radial-gradient(1px 1px at 81% 52%, #fffa, transparent),
+    radial-gradient(1px 1px at 91% 14%, #fff8, transparent), radial-gradient(ellipse at 50% 0%, #26305a, #0f1428 75%);
+  border-color: rgba(255, 255, 255, 0.1); }
+.sb .sky h3 { color: rgba(255, 255, 255, 0.7); margin: 0; }
+.sky-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px; }
+.tokens { display: flex; gap: 14px; flex-wrap: wrap; }
+.tok-group { display: flex; gap: 3px; }
+.tok { width: 24px; height: 24px; display: grid; place-items: center; border-radius: 50%; font-size: 0.85rem;
+  background: rgba(255, 255, 255, 0.06); color: rgba(255, 255, 255, 0.2); border: 1px solid rgba(255, 255, 255, 0.12); }
+.tok.hint.on { background: radial-gradient(circle, #fff3c4, #f0b445 70%); color: #3a2a05; border-color: #ffe39a; box-shadow: 0 0 8px rgba(240, 180, 69, 0.55); }
+.tok.cloud.on { background: #8a93a8; color: #1c2130; border-color: #c4cad6; }
+.sb .sky .msg { color: rgba(255, 255, 255, 0.88); }
+
+.piles { display: flex; gap: 14px; flex-wrap: wrap; }
+.pile { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 66px; }
+.pile small { color: rgba(255, 255, 255, 0.75); font-size: 0.76rem; white-space: nowrap; }
+.pile .dead { color: #ff9a8a; }
+.pile .slot { width: 62px; height: 90px; border-radius: 9px; border: 2px dashed rgba(255, 255, 255, 0.25); display: grid; place-items: center;
+  font-size: 1.3rem; color: rgba(255, 255, 255, 0.3); }
+.pile.red .slot { border-color: #c8452f88; color: #c8452faa; } .pile.blue .slot { border-color: #3f7fd088; color: #3f7fd0aa; }
+.pile.green .slot { border-color: #3da35d88; color: #3da35daa; } .pile.yellow .slot { border-color: #e2b73a88; color: #e2b73aaa; }
+.pile.white .slot { border-color: #e9ecf288; color: #e9ecf2aa; }
+
+.stcard { position: relative; width: 62px; height: 90px; border-radius: 9px; border: 2px solid rgba(255, 255, 255, 0.75); padding: 0;
+  font: inherit; font-weight: 800; color: #fff; box-shadow: 0 3px 8px rgba(0, 0, 0, 0.45); transition: transform 0.12s, box-shadow 0.12s; }
+.stcard:not(:disabled) { cursor: pointer; }
+.stcard:hover:not(:disabled) { transform: translateY(-6px); }
+.stcard .n { position: absolute; inset: 0; display: grid; place-items: center; font-size: 1.7rem; }
+.stcard .shape { position: absolute; font-size: 0.75rem; opacity: 0.9; }
+.stcard .tl { top: 4px; left: 6px; } .stcard .br { bottom: 4px; right: 6px; }
+.stcard.red { background: #c8452f; } .stcard.blue { background: #3f7fd0; } .stcard.green { background: #3da35d; }
+.stcard.yellow { background: #e2b73a; color: #2a1f1a; border-color: rgba(255, 255, 255, 0.9); }
+.stcard.white { background: #e9ecf2; color: #283044; border-color: #9aa3b5; }
+/* Eigene verdeckte Karten: Sternenrückseite; bekannte Farbe als Rand/Tönung */
+.stcard.hidden { background: radial-gradient(circle at 50% 35%, #36407a, #1a1f3d 70%); border-style: dashed; }
+.stcard.hidden .n { color: rgba(255, 255, 255, 0.85); }
+.stcard.hidden.red { background: linear-gradient(#c8452fcc, #5a1d14); } .stcard.hidden.blue { background: linear-gradient(#3f7fd0cc, #1a355a); }
+.stcard.hidden.green { background: linear-gradient(#3da35dcc, #183f24); } .stcard.hidden.yellow { background: linear-gradient(#e2b73acc, #5e4a14); color: #fff; }
+.stcard.hidden.white { background: linear-gradient(#e9ecf2cc, #5d6578); color: #fff; }
+.stcard.sel { box-shadow: 0 0 0 3px var(--accent), 0 8px 18px rgba(0, 0, 0, 0.5); transform: translateY(-8px); }
+/* Frischer Hinweis: goldener Rand, der beim Eintreffen zweimal aufleuchtet */
+.stcard.hot { box-shadow: 0 0 0 3px #ffe39a, 0 0 12px rgba(240, 180, 69, 0.6); animation: sb-hinted 1.2s ease-out 2; }
+/* Vom Besitzer ausgewählt: steht bei den Mitspielern ein Stück höher */
+.stcard.shown { transform: translateY(-12px); box-shadow: 0 0 0 2px var(--accent), 0 12px 18px rgba(0, 0, 0, 0.5); }
+.stcard.hot.shown { box-shadow: 0 0 0 3px var(--accent), 0 0 0 6px #ffe39a, 0 12px 18px rgba(0, 0, 0, 0.5); }
+.stcard.hot.sel { box-shadow: 0 0 0 3px var(--accent), 0 0 0 6px #ffe39a, 0 8px 18px rgba(0, 0, 0, 0.5); }
+@keyframes sb-hinted { 40% { box-shadow: 0 0 0 6px #fff3c4, 0 0 26px 6px #f0b445; } }
+@keyframes sb-pop { from { transform: scale(0.6); opacity: 0; } 60% { transform: scale(1.12); } }
+.pile .stcard { animation: sb-pop 0.45s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.drow .stcard { animation: sb-pop 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.tok.on { animation: sb-pop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.stcard.small { width: 30px; height: 44px; border-radius: 6px; border-width: 1.5px; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4); }
+.stcard.small .n { font-size: 0.9rem; }
+.stcard.small .shape { display: none; }
+
+.hands { display: grid; gap: 10px; }
+.ohand { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--border); background: var(--surface-2); }
+.ohand.active { border-color: var(--border-strong); }
+.ohand.target { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.ohand.pickable { cursor: pointer; }
+.oname { font-weight: 600; font-size: 0.9rem; margin-bottom: 16px; } /* Platz für eine angehobene Karte */
+/* position: relative, damit die Plätze der Karten relativ zur Reihe gemessen werden (fürs Gleiten beim Umsortieren) */
+.cards { position: relative; display: flex; flex-wrap: wrap; gap: 8px; align-items: flex-start; }
+.cards.mine { min-height: 96px; user-select: none; -webkit-user-select: none; }
+.slotwrap { position: relative; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+/* Eigene Karten lassen sich ziehen: Der Finger soll dabei nicht die Seite scrollen */
+.cards.mine.sortable .slotwrap { touch-action: none; }
+.cards.mine.sortable .stcard { cursor: grab; }
+.slotwrap.dragging { z-index: 5; }
+.slotwrap.dragging .stcard { cursor: grabbing; box-shadow: 0 16px 30px rgba(0, 0, 0, 0.6); }
+.sb .fresh { color: #ffe39a; font-size: 0.88rem; margin: 10px 0 0; }
+.sb .sort-note { margin-top: 10px; }
+.sb .mode { display: inline-block; padding: 1px 8px; border-radius: 999px; font-weight: 700; font-size: 0.8rem; background: var(--accent-soft); color: var(--accent); border: 1px solid rgba(240, 180, 69, 0.45); }
+.know { display: flex; gap: 3px; font-size: 0.72rem; font-weight: 700; }
+.know span { min-width: 16px; height: 16px; display: grid; place-items: center; border-radius: 4px; background: var(--surface-3); color: var(--muted); }
+.know span.on { background: var(--text); color: var(--surface); }
+.know span.on.red { background: #c8452f; color: #fff; } .know span.on.blue { background: #3f7fd0; color: #fff; }
+.know span.on.green { background: #3da35d; color: #fff; } .know span.on.yellow { background: #e2b73a; color: #2a1f1a; }
+.know span.on.white { background: #e9ecf2; color: #283044; }
+.not { display: flex; flex-wrap: wrap; gap: 2px; max-width: 62px; justify-content: center; font-size: 0.66rem; color: var(--muted); text-decoration: line-through; }
+.not .red { color: #c8452f; } .not .blue { color: #3f7fd0; } .not .green { color: #3da35d; } .not .yellow { color: #e2b73a; } .not .white { color: #c9ced9; }
+
+.hintbox { margin-top: 14px; }
+.sb .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; align-items: center; }
+.sb .row button { font: inherit; font-weight: 700; border-radius: 10px; border: 1px solid var(--border-strong); cursor: pointer; background: var(--surface-3); color: var(--text); }
+.sb .row button:disabled { opacity: 0.3; cursor: not-allowed; }
+.sb .row button:hover:not(:disabled) { border-color: var(--accent); }
+.sb .row button.numb { width: 46px; height: 42px; font-size: 1.1rem; }
+.sb .row button.pick { padding: 9px 14px; color: #fff; border: 0; }
+.sb .row button.pick.red { background: #c8452f; } .sb .row button.pick.blue { background: #3f7fd0; }
+.sb .row button.pick.green { background: #3da35d; } .sb .row button.pick.yellow { background: #e2b73a; color: #2a1f1a; }
+.sb .row button.pick.white { background: #e9ecf2; color: #283044; }
+.sb .row button.act { padding: 10px 16px; }
+.sb .row button.act.play { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+
+.discard { display: grid; gap: 6px; }
+.drow { display: flex; flex-wrap: wrap; gap: 4px; }
+.log { margin: 0; padding-left: 18px; max-height: 260px; overflow-y: auto; font-size: 0.85rem; color: var(--muted); display: grid; gap: 4px; }
+.log li:first-child { color: var(--text); }
+
+.big-score { font-size: 1.2rem; margin: 6px 0; }
+.big-score b { font-size: 2.4rem; color: var(--accent); }
+.overlay .piles.small { justify-content: center; margin: 14px 0; gap: 8px; }
+.overlay .piles.small .pile { min-width: 52px; padding: 8px 6px; border-radius: 10px; color: #fff; }
+.overlay .piles.small .pile b { font-size: 1.3rem; }
+.overlay .piles.small .pile small { color: inherit; opacity: 0.85; }
+.overlay .pile.red { background: #c8452f; } .overlay .pile.blue { background: #3f7fd0; } .overlay .pile.green { background: #3da35d; }
+.overlay .pile.yellow { background: #e2b73a; color: #2a1f1a; } .overlay .pile.white { background: #e9ecf2; color: #283044; }
+
+@media (prefers-reduced-motion: reduce) { .sb .stcard, .sb .tok { animation: none; transition: none; } }
+/* Handy: Handkarten schrumpfen, damit alle in einer Reihe bleiben (sonst sortiert es sich schlecht) */
+@media (max-width: 480px) {
+  .sb .cards { gap: 5px; flex-wrap: nowrap; }
+  .sb .cards .slotwrap { flex: 0 1 62px; min-width: 0; }
+  .sb .cards .stcard { width: 100%; height: auto; aspect-ratio: 62 / 90; }
+  .sb .cards .stcard .n { font-size: 1.4rem; }
+}

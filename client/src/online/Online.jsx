@@ -5,9 +5,10 @@ import OnlineKniffel from "./OnlineKniffel";
 import OnlinePhase10 from "./OnlinePhase10";
 import OnlineSchwimmen from "./OnlineSchwimmen";
 import OnlineZauberstich from "./OnlineZauberstich";
+import OnlineSternbilder from "./OnlineSternbilder";
 
-const GAME_NAMES = { ludo: "Mensch ärgere dich nicht", kniffel: "Kniffel", phase10: "Phase 10", schwimmen: "Schwimmen", zauberstich: "Zauberstich" };
-const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6 };
+const GAME_NAMES = { ludo: "Mensch ärgere dich nicht", kniffel: "Kniffel", phase10: "Phase 10", schwimmen: "Schwimmen", zauberstich: "Zauberstich", sternbilder: "Sternbilder" };
+const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5 };
 
 const socket = io({ autoConnect: false });
 const hashCode = () => (location.hash.startsWith("#join=") ? location.hash.slice(6).toUpperCase() : "");
@@ -20,6 +21,7 @@ export default function Online({ onBack }) {
   const [code, setCode] = useState(hashCode());
   const [scoring, setScoring] = useState(false); // Phase 10: mit Strafpunkten?
   const [noEven, setNoEven] = useState(true); // Zauberstich: Ansagen dürfen nicht aufgehen?
+  const [memory, setMemory] = useState(false); // Sternbilder: Gedächtnis-Modus (Hinweise verschwinden wieder)?
 
   useEffect(() => {
     const rejoin = () => {
@@ -53,7 +55,7 @@ export default function Online({ onBack }) {
   const link = room ? `${location.origin}${location.pathname}#join=${room.code}` : "";
 
   if (room && me && room.state) {
-    const View = { kniffel: OnlineKniffel, phase10: OnlinePhase10, schwimmen: OnlineSchwimmen, zauberstich: OnlineZauberstich }[room.game] || OnlineLudo;
+    const View = { kniffel: OnlineKniffel, phase10: OnlinePhase10, schwimmen: OnlineSchwimmen, zauberstich: OnlineZauberstich, sternbilder: OnlineSternbilder }[room.game] || OnlineLudo;
     return <View room={room} me={me} socket={socket} onLeave={leave} />;
   }
 
@@ -72,6 +74,7 @@ export default function Online({ onBack }) {
             <button className="wide on" onClick={() => enter("create", { game: "phase10" })}>Phase 10</button>
             <button className="wide on" onClick={() => enter("create", { game: "schwimmen" })}>Schwimmen</button>
             <button className="wide on" onClick={() => enter("create", { game: "zauberstich" })}>Zauberstich</button>
+            <button className="wide on" onClick={() => enter("create", { game: "sternbilder" })}>Sternbilder (kooperativ)</button>
           </div>
           <p>oder mit Code beitreten</p>
           <div className="names">
@@ -125,8 +128,21 @@ export default function Online({ onBack }) {
                     : "Jeder darf frei ansagen, auch der Letzte."}</p>
                 </>
               )}
+              {room.game === "sternbilder" && (
+                <>
+                  <p>Kooperativ für 2–5 Spieler: Ihr seht alle Karten außer euren eigenen und legt gemeinsam fünf Sternbilder von 1 bis 5 aus – nur mit Hinweisen.</p>
+                  <p>Hinweise:</p>
+                  <div className="opts">
+                    <button type="button" className={"wide" + (!memory ? " on" : "")} onClick={() => setMemory(false)}>Bleiben sichtbar</button>
+                    <button type="button" className={"wide" + (memory ? " on" : "")} onClick={() => setMemory(true)}>Gedächtnis-Modus (schwer)</button>
+                  </div>
+                  <p>{memory
+                    ? "Wie am Tisch: Ein Hinweis ist nur zu sehen, bis der Empfänger das nächste Mal am Zug war. Danach muss sich jeder selbst merken, was er weiß – oder sich mit der Reihenfolge seiner Karten helfen."
+                    : "Was dir über deine Karten verraten wurde, bleibt auf den Karten stehen."}</p>
+                </>
+              )}
               <div className="opts">
-                <button className="wide on" disabled={room.players.length < 2} onClick={() => socket.emit("start", { scoring, noEven })}>
+                <button className="wide on" disabled={room.players.length < 2} onClick={() => socket.emit("start", { scoring, noEven, memory })}>
                   {room.players.length < 2 ? "Warte auf Mitspieler …" : "Spiel starten"}
                 </button>
               </div>

@@ -9,13 +9,14 @@ import { createKniffel, kRoll, kHold, kPick } from "../client/src/shared/kniffel
 import { createPhase10, act as p10act, viewP10 } from "../client/src/shared/phase10.js";
 import { createSchwimmen, act as swAct, viewSchwimmen } from "../client/src/shared/schwimmen.js";
 import { createZauberstich, act as srAct, collect as srCollect, viewZauberstich } from "../client/src/shared/zauberstich.js";
+import { createSternbilder, act as sbAct, viewSternbilder } from "../client/src/shared/sternbilder.js";
 
-const VIEWS = { phase10: viewP10, schwimmen: viewSchwimmen, zauberstich: viewZauberstich };
-const GAMES = ["ludo", "kniffel", "phase10", "schwimmen", "zauberstich"];
-const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6 };
+const VIEWS = { phase10: viewP10, schwimmen: viewSchwimmen, zauberstich: viewZauberstich, sternbilder: viewSternbilder };
+const GAMES = ["ludo", "kniffel", "phase10", "schwimmen", "zauberstich", "sternbilder"];
+const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5 };
 // Ist das laufende Spiel zu Ende? (dann darf der Host zurück in die Lobby)
 const isOver = (r) => !r.state || (r.game === "kniffel" ? r.state.over
-  : ["phase10", "schwimmen", "zauberstich"].includes(r.game) ? r.state.stage === "over" : r.state.winner !== null);
+  : ["phase10", "schwimmen", "zauberstich", "sternbilder"].includes(r.game) ? r.state.stage === "over" : r.state.winner !== null);
 
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "../client/dist");
 const app = express();
@@ -69,11 +70,12 @@ io.on("connection", (socket) => {
   });
   socket.on("start", (opts) => {
     if (!room || room.players[0] !== me || room.players.length < 2) return;
-    if (opts && typeof opts === "object") room.opts = { scoring: !!opts.scoring, noEven: opts.noEven !== false }; // beim "Nochmal spielen" bleibt die letzte Wahl
+    if (opts && typeof opts === "object") room.opts = { scoring: !!opts.scoring, noEven: opts.noEven !== false, memory: !!opts.memory }; // beim "Nochmal spielen" bleibt die letzte Wahl
     const names = room.players.map((p) => p.name);
     room.state = room.game === "kniffel" ? createKniffel(names) : room.game === "phase10" ? createPhase10(names, room.opts)
       : room.game === "schwimmen" ? createSchwimmen(names)
-      : room.game === "zauberstich" ? createZauberstich(names, room.opts) : createGame(names);
+      : room.game === "zauberstich" ? createZauberstich(names, room.opts)
+      : room.game === "sternbilder" ? createSternbilder(names, room.opts) : createGame(names);
     push(room);
   });
   // Nach Spielende: alle zurück in die Lobby desselben Raums, dort wählt der Host das nächste Spiel
@@ -143,6 +145,13 @@ io.on("connection", (socket) => {
       const st = r.state;
       setTimeout(() => { if (r.state === st) { r.state = srCollect(st); push(r); } }, 1800);
     }
+  });
+  socket.on("sb:act", (a, ack) => {
+    const r = room;
+    if (r?.game !== "sternbilder" || !r.state || !a) return ack?.({ error: "Kein Sternbilder-Spiel." });
+    const res = sbAct(r.state, r.players.indexOf(me), a);
+    if (res.error) return ack?.({ error: res.error });
+    r.state = res.state; push(r); ack?.({});
   });
   socket.on("disconnect", () => {
     const r = room;
