@@ -1,4 +1,6 @@
-.d3 { width: var(--s); height: var(--s); perspective: 400px; }
+/* pointer-events: none – der Würfel ist nur Anzeige. Ohne das fangen die gedrehten Würfelflächen Tipps ab,
+   die für Knöpfe daneben gedacht sind (bei einer 2 oder 5 liegt eine Fläche genau in Blickrichtung). */
+.d3 { --s: 72px; width: var(--s); height: var(--s); perspective: 400px; pointer-events: none; }
 .d3-cube { width: 100%; height: 100%; position: relative; transform-style: preserve-3d;
   transition: transform 1s cubic-bezier(0.2, 0.8, 0.2, 1); }
 .d3-face { position: absolute; inset: 0; border-radius: calc(var(--s) * 0.18); padding: calc(var(--s) * 0.14);

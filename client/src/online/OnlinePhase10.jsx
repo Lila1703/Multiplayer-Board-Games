@@ -104,12 +104,16 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
       </section>
 
       <section className="panel table">
-        <h3>Tisch – abgelegte Gruppen (für alle sichtbar)</h3>
+        <h3>Tisch<span className="lg-only"> – abgelegte Gruppen (für alle sichtbar)</span></h3>
         {room.players.map((p, pi) => {
           const theirs = s.melds.map((m, i) => ({ m, i })).filter(({ m }) => m.owner === pi);
           return (
-            <div className="seat" key={pi}>
-              <div className="seatname">{p.name}{pi === mine ? " (du)" : ""}</div>
+            <div className={"seat" + (pi === s.cur && running ? " now" : "")} key={pi}>
+              <div className="seatname">
+                {p.name}{pi === mine ? " (du)" : ""}
+                {/* Nur auf dem Handy: Dort entfällt die Übersichtstabelle, ihre Angaben stehen dann hier */}
+                <span className="sm-only seatinfo"> · {s.phases[pi] > 10 ? "fertig" : `Phase ${s.phases[pi]}`} · {s.sizes[pi]} {s.sizes[pi] === 1 ? "Karte" : "Karten"}{s.scoring ? ` · ${s.scores[pi]} P.` : ""}{p.connected ? "" : " · offline"}</span>
+              </div>
               {theirs.length === 0 && <span className="empty">noch nichts abgelegt</span>}
               <div className="melds">
                 {theirs.map(({ m, i }) => {
@@ -130,21 +134,26 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
         })}
       </section>
 
-      <section className="panel">
+      {/* dock: Auf dem Handy klebt die Hand am unteren Bildschirmrand (index.css) */}
+      <section className="panel p10-hand dock">
         <h3>Deine Hand</h3>
         {done.ids.size > 0 && (
           <p className="legend">
-            Angehobene Karten gehören schon zu fertigen Gruppen deiner Phase – besser nicht abwerfen.
-            {done.complete && <b> Deine Phase ist komplett, du kannst sie abgeben!</b>}
+            <span className="lg-only">Angehobene Karten gehören schon zu fertigen Gruppen deiner Phase – besser nicht abwerfen.</span>
+            <span className="sm-only">Angehobene Karten gehören schon zu deiner Phase.</span>
+            {done.complete && <b className="lg-only"> Deine Phase ist komplett, du kannst sie abgeben!</b>}
           </p>
         )}
-        {drawnCard !== null && (
-          <div className="drawn">
-            <span>Neu gezogen:</span>
-            <Card id={drawnCard} sel={sel.includes(drawnCard)} done={done.ids.has(drawnCard)} onClick={myTurn && s.stage === "play" ? () => toggle(drawnCard) : undefined} />
-          </div>
-        )}
-        <div className="cards">{rest.map((id) => <Card key={id} id={id} sel={sel.includes(id)} done={done.ids.has(id)} onClick={myTurn && s.stage === "play" ? () => toggle(id) : undefined} />)}</div>
+        {/* handrow: Auf dem Handy stehen die gezogene Karte und die übrigen in einer gemeinsamen Reihe */}
+        <div className="handrow">
+          {drawnCard !== null && (
+            <div className="drawn">
+              <span><span className="lg-only">Neu gezogen:</span><span className="sm-only">neu</span></span>
+              <Card id={drawnCard} sel={sel.includes(drawnCard)} done={done.ids.has(drawnCard)} onClick={myTurn && s.stage === "play" ? () => toggle(drawnCard) : undefined} />
+            </div>
+          )}
+          <div className="cards">{rest.map((id) => <Card key={id} id={id} sel={sel.includes(id)} done={done.ids.has(id)} onClick={myTurn && s.stage === "play" ? () => toggle(id) : undefined} />)}</div>
+        </div>
 
         {myTurn && s.stage === "play" && !s.laid[mine] && (
           <div className="row">

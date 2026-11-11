@@ -24,12 +24,15 @@
   color-scheme: dark;
 }
 *, *::before, *::after { box-sizing: border-box; }
+/* Touch: kein Doppeltipp-Zoom, kein Neuladen durch Herunterziehen, keine aufgeblasene Schrift im Querformat */
+html { touch-action: manipulation; overscroll-behavior-y: contain; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* dvh = sichtbare Höhe ohne die Browserleisten des Handys (vh als Rückfall für ältere Browser) */
 body {
-  margin: 0; min-height: 100vh; color: var(--text); font: 15px/1.5 var(--sans);
-  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;
+  margin: 0; min-height: 100vh; min-height: 100dvh; color: var(--text); font: 15px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale; -webkit-tap-highlight-color: transparent;
   background: var(--bg) radial-gradient(ellipse 90% 60% at 50% -10%, var(--bg-top) 0%, var(--bg) 70%) no-repeat;
 }
-#root { min-height: 100vh; }
+#root { min-height: 100vh; min-height: 100dvh; }
 main { max-width: 1040px; margin: 0 auto; padding: 24px 20px 40px; }
 h1, h2, h3 { color: var(--text); letter-spacing: -0.02em; }
 h1 { font-size: 1.6rem; font-weight: 700; margin: 0; }
@@ -54,21 +57,22 @@ header h1 { flex: 1; }
 .tray { padding: 22px 16px 18px; text-align: center; }
 
 /* Buttons */
-button { font: inherit; }
+/* Hover-Effekte stehen überall in @media (hover: hover): Auf dem Touchscreen blieben sie sonst nach dem Antippen hängen */
+button { font: inherit; -webkit-user-select: none; user-select: none; }
 button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .roll {
   font-weight: 700; font-size: 1.05rem; padding: 12px 32px; border-radius: 12px; border: 0; cursor: pointer;
   background: var(--accent); color: var(--accent-ink); box-shadow: 0 4px 14px rgba(240, 180, 69, 0.25);
   transition: transform 0.12s, filter 0.12s;
 }
-.roll:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); }
+@media (hover: hover) { .roll:hover:not(:disabled) { filter: brightness(1.06); transform: translateY(-1px); } }
 .roll:disabled { opacity: 0.4; cursor: not-allowed; box-shadow: none; }
 .ghost {
   background: transparent; border: 1px solid var(--border-strong); color: var(--muted);
   border-radius: 10px; padding: 7px 14px; cursor: pointer; margin-top: 14px; font-size: 0.9rem;
   transition: color 0.12s, border-color 0.12s, background 0.12s;
 }
-.ghost:hover { color: var(--text); border-color: var(--muted); background: rgba(255, 255, 255, 0.04); }
+@media (hover: hover) { .ghost:hover { color: var(--text); border-color: var(--muted); background: rgba(255, 255, 255, 0.04); } }
 .controls { margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px; }
 .hint { color: var(--muted); font-size: 0.9rem; min-height: 1.3em; margin: 0; }
 
@@ -80,7 +84,7 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 .card {
   background: var(--surface); border: 1px solid var(--border); color: var(--text);
   border-radius: var(--radius-lg); padding: 28px; max-width: 420px; width: 100%; text-align: center;
-  box-shadow: var(--shadow-lg); max-height: calc(100vh - 40px); overflow-y: auto;
+  box-shadow: var(--shadow-lg); max-height: calc(100vh - 40px); max-height: calc(100dvh - 40px); overflow-y: auto;
 }
 .card h2 { margin: 0 0 6px; font-size: 1.4rem; }
 .card p { margin: 8px 0 16px; color: var(--muted); }
@@ -92,9 +96,9 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
   transition: background 0.12s, border-color 0.12s;
 }
 .opts button.wide { width: auto; height: 46px; padding: 0 20px; font-size: 0.95rem; }
-.opts button:hover:not(:disabled) { border-color: var(--accent); }
+@media (hover: hover) { .opts button:hover:not(:disabled) { border-color: var(--accent); } }
 .opts button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
-.opts button.on:hover:not(:disabled) { filter: brightness(1.06); }
+@media (hover: hover) { .opts button.on:hover:not(:disabled) { filter: brightness(1.06); } }
 .opts button:disabled { opacity: 0.5; cursor: not-allowed; }
 .names { display: grid; gap: 8px; margin: 16px 0; }
 .names input {
@@ -115,3 +119,54 @@ th.active { background: var(--accent); color: var(--accent-ink); }
 tr.sum td { font-weight: 700; background: var(--surface-2); }
 td.active-col, tr.active-col td { background: var(--accent-soft); }
 tr.sep td { padding: 0; height: 2px; background: var(--border-strong); border: 0; }
+
+/* Texte, die es in lang (.lg-only) und kurz (.sm-only, nur Handy) gibt */
+.sm-only { display: none; }
+
+/* ---------- Handy hochkant ----------
+   Die spielspezifischen Handy-Regeln stehen am Ende der CSS-Datei des jeweiligen Spiels. */
+@media (max-width: 600px) {
+  .lg-only { display: none; }
+  .sm-only { display: inline; }
+  main { padding: 10px 12px 24px; }
+  /* Kopfzeile: Zurück-Knopf und Titel in einer Zeile, Status klein darunter */
+  header { gap: 4px 10px; padding-bottom: 8px; }
+  header h1 { font-size: 1.1rem; line-height: 1.25; min-width: 0; }
+  .status { flex-basis: 100%; font-size: 0.85rem; }
+  /* Spalte statt Raster: In einem Raster bliebe der angedockte Kasten (.dock) in seiner Zelle gefangen */
+  .layout { display: flex; flex-direction: column; gap: 12px; margin-top: 12px; }
+  /* Würfelkasten: Würfel, daneben bzw. darunter „Würfeln“ (und „Neues Spiel“), ganz unten der Hinweis */
+  .tray { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px 10px; padding: 12px; }
+  .tray > * { flex: 1 1 100%; }
+  .tray .controls { display: contents; }
+  .tray .roll { flex: 1 1 0; padding: 12px 10px; }
+  .tray > .ghost { flex: 0 0 auto; margin: 0; padding: 12px 10px; font-size: 0.85rem; }
+  .tray .hint { flex: 1 1 100%; order: 1; font-size: 0.82rem; }
+  /* Dialoge */
+  .overlay { padding: 12px; }
+  .card { padding: 20px 16px; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
+  .opts button.wide { height: auto; min-height: 46px; padding: 8px 16px; }
+  /* Unter 16px zoomt das iPhone beim Antippen in das Eingabefeld hinein */
+  .names input { font-size: 16px; }
+  /* Tabellen */
+  th, td { padding: 7px 6px; }
+  td:first-child { white-space: normal; }
+  thead th { font-size: 0.72rem; letter-spacing: 0.02em; }
+}
+
+/* Angedockt: Was man in jedem Zug braucht (Würfel, eigene Hand), klebt am unteren Rand, der Rest scrollt darüber.
+   Nur wenn das Fenster hoch genug ist – im Querformat bliebe sonst nichts vom Spiel übrig. */
+@media (max-width: 600px) and (min-height: 480px) {
+  .dock {
+    position: sticky; bottom: 0; z-index: 10; margin-left: -12px; margin-right: -12px;
+    border-width: 1px 0 0; border-color: var(--border-strong); border-radius: 18px 18px 0 0;
+    box-shadow: 0 -10px 28px rgba(0, 0, 0, 0.55);
+  }
+}
+
+/* Handy quer: Hier schrumpft nur die Kopfzeile, das Layout bleibt wie am Desktop */
+@media (max-height: 480px) and (min-width: 601px) {
+  main { padding-top: 10px; }
+  header { gap: 4px 12px; padding-bottom: 8px; }
+  header h1 { font-size: 1.15rem; }
+}

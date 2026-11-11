@@ -1,0 +1,26 @@
+# Abhängigkeiten
+node_modules/
+
+# Build-Ausgabe
+dist/
+dist-ssr/
+
+# Laufzeitdateien (von start/stop-Skripten)
+.run-pids
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Umgebungsvariablen
+.env
+.env.*
+*.local
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

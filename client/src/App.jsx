@@ -19,9 +19,9 @@ export default function App() {
   return (
     <main className="hub">
       <div className="hub-head">
-        <span className="hub-logo" aria-hidden="true">🎲</span>
+        <span className="hub-logo" aria-hidden="true">🃏</span>
         <div>
-          <h1>Brettspiele</h1>
+          <h1>SynCard</h1>
           <p className="sub">Lokal an einem Gerät oder online mit Freunden.</p>
         </div>
       </div>

@@ -70,7 +70,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
       </header>
 
       <div className="layout">
-        <section className="tray" aria-label="Würfel">
+        <section className="tray dock" aria-label="Würfel">
           <div className="dice">
             {s.dice.map((v, i) => (
               <Die key={i} value={v} spins={spins[i]} held={s.held[i]} label={`Würfel ${i + 1}`}
@@ -86,7 +86,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
           </div>
         </section>
 
-        <section className="sheet"><div className="scroll"><table>
+        <section className="sheet kn"><div className="scroll"><table>
           <thead><tr><th>Kategorie</th>
             {players.map((p, i) => <th key={i} className={i === s.cur ? "active" : ""}>{p.name}{i === me.index ? " (du)" : ""}</th>)}
           </tr></thead>

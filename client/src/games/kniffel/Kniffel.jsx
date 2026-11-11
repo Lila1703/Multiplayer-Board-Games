@@ -142,7 +142,7 @@ export default function Kniffel({ onBack }) {
       </header>
 
       <div className="layout">
-        <section className="tray" aria-label="Würfel">
+        <section className="tray dock" aria-label="Würfel">
           <div className="dice">
             {s.dice.map((v, i) => (
               <Die key={i} value={v} spins={s.spins[i]} held={s.held[i]}
@@ -159,7 +159,7 @@ export default function Kniffel({ onBack }) {
           <button className="ghost" onClick={() => setS({ ...s, phase: "setup" })}>Neues Spiel</button>
         </section>
 
-        <section className="sheet">
+        <section className="sheet kn">
           <div className="scroll">
             <table>
               <thead>

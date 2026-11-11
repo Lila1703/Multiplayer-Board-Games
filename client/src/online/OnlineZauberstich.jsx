@@ -64,7 +64,7 @@ export default function OnlineZauberstich({ room, me, socket, onLeave }) {
       <header>
         <button className="ghost" style={{ margin: 0 }} onClick={onLeave}>← Verlassen</button>
         <h1>Zauberstich · {room.code}</h1>
-        <div className="status" aria-live="polite">Runde <b>{s.round}</b> von {s.rounds} ·{s.noEven ? " Ansagen gehen nicht auf ·" : ""} Trumpf: <TrumpBadge s={s} /></div>
+        <div className="status" aria-live="polite">Runde <b>{s.round}</b> von {s.rounds} ·{s.noEven && <span className="lg-only"> Ansagen gehen nicht auf ·</span>} Trumpf: <TrumpBadge s={s} /></div>
       </header>
 
       <div className="sr-layout"><div className="sr-main">

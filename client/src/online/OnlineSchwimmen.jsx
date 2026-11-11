@@ -80,7 +80,8 @@ export default function OnlineSchwimmen({ room, me, socket, onLeave }) {
         <p className="msg">{s.msg}</p>
       </section>
 
-      <section className="panel">
+      {/* dock: Auf dem Handy kleben die eigenen Karten samt Knöpfen am unteren Bildschirmrand (index.css) */}
+      <section className="panel dock">
         <h3>Deine Karten {!out && <span className="points">· {fmt(score(s.hand))} Punkte</span>}</h3>
         {out ? <p className="muted">Du bist untergegangen 🫧 – schau den anderen beim Schwimmen zu.</p> : (
           <div className="row-cards">

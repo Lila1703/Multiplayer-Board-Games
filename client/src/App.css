@@ -15,7 +15,7 @@
   display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow);
   transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
-.gamecard:hover { transform: translateY(-2px); border-color: var(--border-strong); background: var(--surface-2); }
+@media (hover: hover) { .gamecard:hover { transform: translateY(-2px); border-color: var(--border-strong); background: var(--surface-2); } }
 .gamecard:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .gamecard .icon {
   width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.4rem;
@@ -31,4 +31,13 @@
 .badge {
   position: absolute; top: 18px; right: 18px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
   text-transform: uppercase; color: var(--accent-ink); background: var(--accent); padding: 3px 8px; border-radius: 999px;
+}
+
+/* Handy hochkant */
+@media (max-width: 600px) {
+  .hub { padding-top: 24px; }
+  .hub h1 { font-size: 1.6rem; }
+  .section-label { margin: 24px 0 10px; }
+  .games { grid-template-columns: 1fr; gap: 10px; }
+  .gamecard { padding: 16px; }
 }

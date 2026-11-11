@@ -188,3 +188,44 @@ main:has(.board) {
     width: min(calc(100vw - 420px), 900px, max(320px, calc(100vh - 150px)));
   }
 }
+
+/* Handy hochkant: Brett oben in voller Breite, darunter eine Zeile mit Würfel und „Würfeln“ */
+@media (max-width: 600px) {
+
+  /* Das Brett dreht sich beim Spielerwechsel und ragt dabei kurz über seine Breite hinaus */
+  main:has(.board) {
+    overflow-x: clip;
+  }
+
+  /* So breit wie möglich, aber nur so hoch, dass die Würfelzeile darunter noch auf den Bildschirm passt */
+  .board {
+    order: -1;
+    width: min(calc(100vw - 24px), max(240px, calc(100vh - 230px)));
+    width: min(calc(100vw - 24px), max(240px, calc(100dvh - 230px)));
+  }
+
+  /* Der Würfel springt beim Wurf nach oben – über das Brett, nicht dahinter */
+  .tray:has(.dicebox) {
+    position: relative;
+    z-index: 1;
+  }
+
+  .tray .dicebox {
+    flex: 0 0 auto;
+    height: auto;
+  }
+
+  .tray .d3 {
+    --s: 52px;
+  }
+
+  /* Online: Mitspieler nebeneinander statt untereinander */
+  .tray>.hint br {
+    display: none;
+  }
+
+  .tray>.hint>span {
+    display: inline-block;
+    margin: 0 6px;
+  }
+}

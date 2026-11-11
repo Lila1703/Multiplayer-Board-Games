@@ -301,7 +301,8 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
           )}
         </section>
 
-        <section className="panel">
+        {/* dock: Auf dem Handy kleben die eigenen Karten am unteren Bildschirmrand (index.css) */}
+        <section className="panel sb-mine dock">
           <h3>Deine Karten{!playing ? " (aufgedeckt)" : s.memory ? " – Hinweise musst du dir merken" : " – du siehst nur, was dir verraten wurde"}</h3>
           <MyHand cards={myCards} sel={selIdx >= 0 ? sel : null} sortable={playing} onTap={tap} onReorder={reorder} />
           {freshHint && <p className="fresh">✦ Frischer Hinweis – präg ihn dir ein oder sortiere deine Karten um. Nach deinem nächsten Zug ist er nicht mehr zu sehen.</p>}
@@ -312,7 +313,7 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
               {myTurn && <>
                 <button className="act play" onClick={() => act({ type: "play", u: sel })}>Ausspielen</button>
                 <button className="act" disabled={s.hints === MAX_HINTS} title={s.hints === MAX_HINTS ? "Erst wenn ein Hinweis verbraucht ist" : undefined}
-                  onClick={() => act({ type: "discard", u: sel })}>Abwerfen (+1 Hinweis)</button>
+                  onClick={() => act({ type: "discard", u: sel })}>Abwerfen<span className="lg-only"> (+1 Hinweis)</span></button>
               </>}
             </div>
           )}
