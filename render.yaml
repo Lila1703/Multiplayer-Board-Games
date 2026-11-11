@@ -3,7 +3,7 @@
 # und baut und startet das Spiel dann bei jedem Push auf main automatisch neu.
 services:
   - type: web
-    name: brettspiele            # ergibt die Adresse https://brettspiele.onrender.com (falls der Name noch frei ist)
+    name: syncard            # ergibt die Adresse https://brettspiele.onrender.com (falls der Name noch frei ist)
     runtime: node
     plan: free                   # kostenlos: schläft nach 15 Minuten ohne Besucher ein, wacht beim nächsten Aufruf wieder auf
     region: frankfurt
