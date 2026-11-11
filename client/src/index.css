@@ -101,11 +101,12 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--accent); ou
 @media (hover: hover) { .opts button.on:hover:not(:disabled) { filter: brightness(1.06); } }
 .opts button:disabled { opacity: 0.5; cursor: not-allowed; }
 .names { display: grid; gap: 8px; margin: 16px 0; }
-.names input {
+/* .field: dasselbe Eingabefeld außerhalb eines Dialogs (Online-Startseite) */
+.names input, input.field {
   font: inherit; padding: 11px 14px; border-radius: 10px; border: 1px solid var(--border-strong);
   background: var(--bg); color: var(--text); text-align: center; transition: border-color 0.12s;
 }
-.names input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.names input:focus, input.field:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 
 /* Tabellen (Kniffel-Block, Phase-10-Übersicht) */
 .sheet { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow); }
@@ -147,7 +148,7 @@ tr.sep td { padding: 0; height: 2px; background: var(--border-strong); border: 0
   .card { padding: 20px 16px; max-height: calc(100vh - 24px); max-height: calc(100dvh - 24px); }
   .opts button.wide { height: auto; min-height: 46px; padding: 8px 16px; }
   /* Unter 16px zoomt das iPhone beim Antippen in das Eingabefeld hinein */
-  .names input { font-size: 16px; }
+  .names input, input.field { font-size: 16px; }
   /* Tabellen */
   th, td { padding: 7px 6px; }
   td:first-child { white-space: normal; }

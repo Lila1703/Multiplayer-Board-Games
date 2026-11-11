@@ -1,43 +1,89 @@
-.hub { padding-top: 56px; }
-.hub-head { display: flex; align-items: center; gap: 16px; }
-.hub-logo {
-  width: 52px; height: 52px; border-radius: 14px; display: grid; place-items: center; font-size: 1.6rem;
-  background: linear-gradient(145deg, var(--surface-3), var(--surface)); border: 1px solid var(--border-strong);
-  box-shadow: var(--shadow);
-}
-.hub h1 { font-size: 2rem; }
-.hub .sub { color: var(--muted); margin: 2px 0 0; }
+.hub { padding-top: 32px; }
+/* Hauptmenü: nur zwei Kacheln, deshalb schmaler – sonst würden die Bilder riesig */
+.hub.home { max-width: 800px; }
+.hub-head { display: flex; flex-direction: column; align-items: center; text-align: center; }
+/* Logo mit Schriftzug; die Überschrift bleibt für Screenreader als alt-Text erhalten */
+.hub-logo { display: block; width: min(300px, 70vw); height: auto; }
+.hub .sub { color: var(--muted); margin: 4px 0 0; }
 .section-label { margin: 40px 0 12px; font-size: 0.78rem; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.06em; }
-.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+
+/* Bildkacheln (components/GameTile.jsx): oben das Motiv im Format 16:10, darunter der Text */
+.games { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.games.modes { grid-template-columns: repeat(2, 1fr); }
 .gamecard {
   font: inherit; text-align: left; color: var(--text); background: var(--surface); position: relative;
-  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 20px; cursor: pointer;
-  display: flex; flex-direction: column; gap: 4px; box-shadow: var(--shadow);
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 0; cursor: pointer; overflow: hidden;
+  display: flex; flex-direction: column; box-shadow: var(--shadow);
   transition: transform 0.15s, border-color 0.15s, background 0.15s;
 }
-@media (hover: hover) { .gamecard:hover { transform: translateY(-2px); border-color: var(--border-strong); background: var(--surface-2); } }
+@media (hover: hover) { .gamecard:hover:not(:disabled) { transform: translateY(-2px); border-color: var(--border-strong); background: var(--surface-2); } }
 .gamecard:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.gamecard .icon {
-  width: 44px; height: 44px; border-radius: 12px; display: grid; place-items: center; font-size: 1.4rem;
-  background: var(--surface-3); margin-bottom: 10px;
+.gamecard:disabled { opacity: 0.45; cursor: not-allowed; }
+.art { display: block; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; }
+.art svg { display: block; width: 100%; height: 100%; font-family: var(--sans); }
+.gamecard .body { display: flex; flex-direction: column; gap: 4px; flex: 1; padding: 14px 18px 16px; min-width: 0; }
+.gamecard .name { font-size: 1.08rem; font-weight: 650; letter-spacing: -0.02em; line-height: 1.25; }
+.gamecard .desc { color: var(--muted); font-size: 0.92rem; flex: 1; }
+/* Der Punkt sitzt auf Höhe der ersten Zeile, auch wenn der Text umbricht */
+.gamecard .meta { margin-top: 8px; color: var(--muted); font-size: 0.8rem; display: flex; align-items: flex-start; gap: 6px; }
+.gamecard .meta::before { content: ""; flex: none; width: 6px; height: 6px; margin-top: calc(0.75em - 3px); border-radius: 50%; background: var(--muted); opacity: 0.6; }
+.gamecard .tag {
+  position: absolute; top: 10px; left: 10px; padding: 2px 9px; border-radius: 999px;
+  background: rgba(8, 9, 12, 0.62); color: #fff; font-size: 0.72rem; font-weight: 600; letter-spacing: 0.02em;
 }
-.gamecard h2 { margin: 0; font-size: 1.08rem; font-weight: 650; }
-.gamecard p { margin: 0; color: var(--muted); font-size: 0.92rem; flex: 1; }
-.gamecard .meta { margin-top: 14px; color: var(--muted); font-size: 0.8rem; display: flex; align-items: center; gap: 6px; }
-.gamecard .meta::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--muted); opacity: 0.6; }
-.gamecard.featured { border-color: rgba(240, 180, 69, 0.35); background: linear-gradient(160deg, rgba(240, 180, 69, 0.08), var(--surface) 60%); }
-.gamecard.featured .icon { background: var(--accent-soft); }
-.gamecard.featured .meta::before { background: var(--accent); opacity: 1; }
-.badge {
-  position: absolute; top: 18px; right: 18px; font-size: 0.7rem; font-weight: 700; letter-spacing: 0.04em;
-  text-transform: uppercase; color: var(--accent-ink); background: var(--accent); padding: 3px 8px; border-radius: 999px;
+
+/* Kleine Kachel nur mit Bild und Name – Spielwechsel in der Online-Lobby */
+.gamepick { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 8px 0; }
+.gamecard.compact { border-radius: 12px; border-color: var(--border-strong); background: var(--surface-2); box-shadow: none; }
+.gamecard.compact .body { padding: 6px 6px 7px; justify-content: center; text-align: center; }
+.gamecard.compact .name { font-size: 0.8rem; font-weight: 600; letter-spacing: 0; line-height: 1.2; }
+.gamecard.on { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+@media (hover: hover) {
+  .gamecard.compact:hover:not(:disabled) { transform: none; border-color: var(--accent); }
+  .gamecard.on:hover:not(:disabled) { background: var(--accent-soft); }
 }
+/* Kopf der Lobby: Motiv des gewählten Spiels neben Titel und Raumcode */
+.lobby-head { display: flex; align-items: center; justify-content: center; gap: 14px; text-align: left; }
+.lobby-head .art { flex: none; width: 104px; border-radius: 10px; }
+.lobby-head h2 { margin: 0; }
+.lobby-head p { margin: 2px 0 0; }
+
+/* Online-Startseite: Name, Spielkacheln, Beitreten per Code */
+.hub input.field { text-align: left; }
+.hub .field { display: block; width: 100%; max-width: 420px; }
+.joinrow { display: flex; gap: 8px; max-width: 420px; }
+.joinrow .field { flex: 1; min-width: 0; }
+.joinrow button {
+  font-weight: 700; padding: 0 20px; border-radius: 12px; cursor: pointer; font-size: 0.95rem;
+  border: 1px solid var(--accent); background: var(--accent); color: var(--accent-ink); transition: filter 0.12s;
+}
+@media (hover: hover) { .joinrow button:hover { filter: brightness(1.06); } }
+.hub .error { margin: 10px 0 0; color: var(--danger); font-weight: 650; }
 
 /* Handy hochkant */
 @media (max-width: 600px) {
   .hub { padding-top: 24px; }
   .hub h1 { font-size: 1.6rem; }
   .section-label { margin: 24px 0 10px; }
-  .games { grid-template-columns: 1fr; gap: 10px; }
-  .gamecard { padding: 16px; }
+  /* Zwei Spalten, damit alle Spiele ohne langes Scrollen zu sehen sind; der Kurztext entfällt dafür */
+  .games { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .gamecard .body { padding: 10px 12px 12px; gap: 2px; }
+  .gamecard .name { font-size: 0.95rem; }
+  .gamecard .desc { display: none; }
+  .gamecard .meta { margin-top: 4px; font-size: 0.75rem; }
+  /* Hauptmenü: Bild links, Text rechts */
+  .games.modes { grid-template-columns: 1fr; }
+  .modes .gamecard { flex-direction: row; align-items: center; }
+  .modes .gamecard .art { flex: none; width: 116px; margin-left: 12px; border-radius: 10px; }
+  .modes .gamecard .body { padding: 14px; gap: 4px; }
+  .modes .gamecard .name { font-size: 1.05rem; }
+  .modes .gamecard .desc { display: block; font-size: 0.85rem; }
+  .gamepick { gap: 6px; }
+  .gamecard.compact .body { padding: 5px 4px 6px; }
+  .gamecard.compact .name { font-size: 0.75rem; }
+  .gamecard.compact .desc, .gamecard.compact .tag { display: none; }
+  .lobby-head { gap: 12px; }
+  .lobby-head .art { width: 88px; }
+  .lobby-head h2 { font-size: 1.2rem; }
+  .gamecard .tag { top: 8px; left: 8px; font-size: 0.68rem; }
 }

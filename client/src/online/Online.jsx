@@ -6,12 +6,16 @@ import OnlinePhase10 from "./OnlinePhase10";
 import OnlineSchwimmen from "./OnlineSchwimmen";
 import OnlineZauberstich from "./OnlineZauberstich";
 import OnlineSternbilder from "./OnlineSternbilder";
+import GameArt from "../components/GameArt";
+import GameTile from "../components/GameTile";
+import { GAMES } from "../games/catalog";
 
-const GAME_NAMES = { ludo: "Mensch ärgere dich nicht", kniffel: "Kniffel", phase10: "Phase 10", schwimmen: "Schwimmen", zauberstich: "Zauberstich", sternbilder: "Sternbilder" };
-const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5 };
+const GAME_NAMES = Object.fromEntries(GAMES.map((g) => [g.id, g.name]));
 
 const socket = io({ autoConnect: false });
 const hashCode = () => (location.hash.startsWith("#join=") ? location.hash.slice(6).toUpperCase() : "");
+// Gespeicherter Name. Der frühere Vorgabewert „Spieler“ zählt nicht als eigener Name – sonst heißen am Ende alle so.
+const savedName = () => { const n = (localStorage.getItem("name") || "").trim(); return n === "Spieler" ? "" : n; };
 // Teilen-Menü des Handys (WhatsApp usw.) – nur auf Touch-Geräten, am Desktop bleibt es bei „Link kopieren“
 const canShare = typeof navigator.share === "function" && !!window.matchMedia?.("(pointer: coarse)").matches;
 // Läuft gerade eine Partie? (Gegenstück zu isOver im Server)
@@ -39,7 +43,8 @@ export default function Online({ onBack }) {
   const [me, setMe] = useState(null);
   const [asking, setAsking] = useState(false); // Rückfrage „Spiel verlassen?“ ist offen
   const [error, setError] = useState("");
-  const [name, setName] = useState(localStorage.getItem("name") || "Spieler");
+  const [name, setName] = useState(savedName);
+  const [askName, setAskName] = useState(() => !savedName()); // Dialog „Wie heißt du?“, solange noch kein Name bekannt ist
   const [code, setCode] = useState(hashCode());
   const [scoring, setScoring] = useState(false); // Phase 10: mit Strafpunkten?
   const [noEven, setNoEven] = useState(true); // Zauberstich: Ansagen dürfen nicht aufgehen?
@@ -102,103 +107,130 @@ export default function Online({ onBack }) {
     );
   }
 
+  // Startseite: Name eintragen, dann mit Code beitreten oder ein Spiel antippen (erstellt einen Raum)
+  if (!room || !me) {
+    return (
+      <main className="hub">
+        <header>
+          <button className="ghost" style={{ margin: 0 }} onClick={leave}>← Hauptmenü</button>
+          <h1>Online spielen</h1>
+        </header>
+        <h2 className="section-label">Dein Name</h2>
+        <input className="field" value={name} maxLength={16} aria-label="Dein Name" onFocus={(e) => e.target.select()} onChange={(e) => setName(e.target.value)} />
+        <h2 className="section-label">Mit Code beitreten</h2>
+        <div className="joinrow">
+          {/* Die Handytastatur soll den Code nicht „korrigieren“; Enter tritt bei */}
+          <input className="field" value={code} maxLength={4} placeholder="Raumcode" aria-label="Raumcode"
+            autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} enterKeyHint="go"
+            onChange={(e) => setCode(e.target.value.toUpperCase())}
+            onKeyDown={(e) => { if (e.key === "Enter") enter("join", { code }); }} />
+          <button type="button" onClick={() => enter("join", { code })}>Beitreten</button>
+        </div>
+        {error && <p className="error" role="alert">{error}</p>}
+        <h2 className="section-label">Oder neuen Raum erstellen</h2>
+        <div className="games">
+          {GAMES.map((g) => (
+            <GameTile key={g.id} art={g.id} name={g.name} desc={g.desc} meta={`2–${g.max} Spieler`} tag={g.tag}
+              onClick={() => enter("create", { game: g.id })} />
+          ))}
+        </div>
+        {askName && (
+          <div className="overlay">
+            <form className="card" onSubmit={(e) => {
+              e.preventDefault();
+              const n = name.trim();
+              if (!n) return;
+              setName(n); localStorage.setItem("name", n); setAskName(false);
+            }}>
+              <h2>Wie heißt du?</h2>
+              <p>Unter diesem Namen sehen dich deine Mitspieler.</p>
+              <div className="names">
+                <input autoFocus value={name} maxLength={16} placeholder="Dein Name" aria-label="Dein Name" enterKeyHint="done"
+                  autoComplete="off" onChange={(e) => setName(e.target.value)} />
+              </div>
+              <div className="opts"><button type="submit" className="wide on" disabled={!name.trim()}>Weiter</button></div>
+              <button type="button" className="ghost" onClick={leave}>Zurück zum Hauptmenü</button>
+            </form>
+          </div>
+        )}
+      </main>
+    );
+  }
+
   return (
     <div className="overlay"><div className="card">
-      <h2>Online spielen</h2>
-      {!room || !me ? (
+      <div className="lobby-head">
+        <GameArt id={room.game} />
+        <div>
+          <h2>Online spielen</h2>
+          <p><b>{GAME_NAMES[room.game] || GAME_NAMES.ludo}</b> · Raum <b>{room.code}</b></p>
+        </div>
+      </div>
+      <p>Schick diesen Link an deine Mitspieler:</p>
+      <div className="names">
+        <input readOnly value={link} aria-label="Einladungslink" onFocus={(e) => e.target.select()} />
+      </div>
+      <div className="opts">
+        {canShare && <button className="wide on" onClick={share}>Teilen</button>}
+        <button className="wide" onClick={() => navigator.clipboard?.writeText(link)}>Link kopieren</button>
+      </div>
+      <p>{room.players.map((p, i) => (
+        <span key={i}>{p.name}{i === 0 ? " (Host)" : ""}{i === me.index ? " (du)" : ""}{p.connected ? "" : " – offline"}<br /></span>
+      ))}</p>
+      {me.index === 0 ? (
         <>
-          <p>Wähle ein Spiel und erstelle einen Raum:</p>
-          <div className="names">
-            <input value={name} maxLength={16} aria-label="Dein Name" onFocus={(e) => e.target.select()} onChange={(e) => setName(e.target.value)} />
+          <p>Spiel:</p>
+          <div className="gamepick">
+            {GAMES.map((g) => (
+              <GameTile key={g.id} compact art={g.id} name={g.name} selected={room.game === g.id}
+                disabled={room.players.length > g.max} title={room.players.length > g.max ? `Höchstens ${g.max} Spieler` : undefined}
+                onClick={() => socket.emit("game", g.id)} />
+            ))}
           </div>
-          <div className="opts">
-            <button className="wide on" onClick={() => enter("create", { game: "ludo" })}>Mensch ärgere dich nicht</button>
-            <button className="wide on" onClick={() => enter("create", { game: "kniffel" })}>Kniffel</button>
-            <button className="wide on" onClick={() => enter("create", { game: "phase10" })}>Phase 10</button>
-            <button className="wide on" onClick={() => enter("create", { game: "schwimmen" })}>Schwimmen</button>
-            <button className="wide on" onClick={() => enter("create", { game: "zauberstich" })}>Zauberstich</button>
-            <button className="wide on" onClick={() => enter("create", { game: "sternbilder" })}>Sternbilder (kooperativ)</button>
-          </div>
-          <p>oder mit Code beitreten</p>
-          <div className="names">
-            {/* Die Handytastatur soll den Code nicht „korrigieren“; Enter tritt bei */}
-            <input value={code} maxLength={4} placeholder="Raumcode" aria-label="Raumcode"
-              autoCapitalize="characters" autoCorrect="off" autoComplete="off" spellCheck={false} enterKeyHint="go"
-              onChange={(e) => setCode(e.target.value.toUpperCase())}
-              onKeyDown={(e) => { if (e.key === "Enter") enter("join", { code }); }} />
-          </div>
-          <div className="opts"><button className="wide" onClick={() => enter("join", { code })}>Beitreten</button></div>
-          {error && <p role="alert"><b>{error}</b></p>}
-        </>
-      ) : (
-        <>
-          <p><b>{GAME_NAMES[room.game] || GAME_NAMES.ludo}</b> · Raum <b>{room.code}</b><br />Schick diesen Link an deine Mitspieler:</p>
-          <div className="names">
-            <input readOnly value={link} aria-label="Einladungslink" onFocus={(e) => e.target.select()} />
-          </div>
-          <div className="opts">
-            {canShare && <button className="wide on" onClick={share}>Teilen</button>}
-            <button className="wide" onClick={() => navigator.clipboard?.writeText(link)}>Link kopieren</button>
-          </div>
-          <p>{room.players.map((p, i) => (
-            <span key={i}>{p.name}{i === 0 ? " (Host)" : ""}{i === me.index ? " (du)" : ""}{p.connected ? "" : " – offline"}<br /></span>
-          ))}</p>
-          {me.index === 0 ? (
+          {room.game === "phase10" && (
             <>
-              <p>Spiel:</p>
+              <p>Spielmodus:</p>
               <div className="opts">
-                {Object.entries(GAME_NAMES).map(([id, label]) => (
-                  <button key={id} type="button" className={"wide" + (room.game === id ? " on" : "")}
-                    disabled={room.players.length > MAX_PLAYERS[id]} title={room.players.length > MAX_PLAYERS[id] ? `Höchstens ${MAX_PLAYERS[id]} Spieler` : undefined}
-                    onClick={() => socket.emit("game", id)}>{label}</button>
-                ))}
+                <button type="button" className={"wide" + (!scoring ? " on" : "")} onClick={() => setScoring(false)}>Ohne Strafpunkte</button>
+                <button type="button" className={"wide" + (scoring ? " on" : "")} onClick={() => setScoring(true)}>Mit Strafpunkten</button>
               </div>
-              {room.game === "phase10" && (
-                <>
-                  <p>Spielmodus:</p>
-                  <div className="opts">
-                    <button type="button" className={"wide" + (!scoring ? " on" : "")} onClick={() => setScoring(false)}>Ohne Strafpunkte</button>
-                    <button type="button" className={"wide" + (scoring ? " on" : "")} onClick={() => setScoring(true)}>Mit Strafpunkten</button>
-                  </div>
-                  <p>{scoring
-                    ? "Nach jeder Runde gibt es Strafpunkte für die Karten auf der Hand. Wer Phase 10 schafft, gewinnt (bei Gleichstand: weniger Punkte)."
-                    : "Keine Punkte: Jeder rückt weiter, sobald er seine Phase geschafft hat. Wer zuerst Phase 10 schafft, gewinnt."}</p>
-                </>
-              )}
-              {room.game === "zauberstich" && (
-                <>
-                  <p>Ansagen:</p>
-                  <div className="opts">
-                    <button type="button" className={"wide" + (noEven ? " on" : "")} onClick={() => setNoEven(true)}>Dürfen nicht aufgehen</button>
-                    <button type="button" className={"wide" + (!noEven ? " on" : "")} onClick={() => setNoEven(false)}>Frei</button>
-                  </div>
-                  <p>{noEven
-                    ? "Wer zuletzt ansagt, darf nicht so ansagen, dass die Summe aller Ansagen genau der Stichzahl der Runde entspricht – mindestens einer liegt also immer daneben."
-                    : "Jeder darf frei ansagen, auch der Letzte."}</p>
-                </>
-              )}
-              {room.game === "sternbilder" && (
-                <>
-                  <p>Kooperativ für 2–5 Spieler: Ihr seht alle Karten außer euren eigenen und legt gemeinsam fünf Sternbilder von 1 bis 5 aus – nur mit Hinweisen.</p>
-                  <p>Hinweise:</p>
-                  <div className="opts">
-                    <button type="button" className={"wide" + (!memory ? " on" : "")} onClick={() => setMemory(false)}>Bleiben sichtbar</button>
-                    <button type="button" className={"wide" + (memory ? " on" : "")} onClick={() => setMemory(true)}>Gedächtnis-Modus (schwer)</button>
-                  </div>
-                  <p>{memory
-                    ? "Wie am Tisch: Ein Hinweis ist nur zu sehen, bis der Empfänger das nächste Mal am Zug war. Danach muss sich jeder selbst merken, was er weiß – oder sich mit der Reihenfolge seiner Karten helfen."
-                    : "Was dir über deine Karten verraten wurde, bleibt auf den Karten stehen."}</p>
-                </>
-              )}
-              <div className="opts">
-                <button className="wide on" disabled={room.players.length < 2} onClick={() => socket.emit("start", { scoring, noEven, memory })}>
-                  {room.players.length < 2 ? "Warte auf Mitspieler …" : "Spiel starten"}
-                </button>
-              </div>
+              <p>{scoring
+                ? "Nach jeder Runde gibt es Strafpunkte für die Karten auf der Hand. Wer Phase 10 schafft, gewinnt (bei Gleichstand: weniger Punkte)."
+                : "Keine Punkte: Jeder rückt weiter, sobald er seine Phase geschafft hat. Wer zuerst Phase 10 schafft, gewinnt."}</p>
             </>
-          ) : <p>Warte, bis der Host das Spiel startet …</p>}
+          )}
+          {room.game === "zauberstich" && (
+            <>
+              <p>Ansagen:</p>
+              <div className="opts">
+                <button type="button" className={"wide" + (noEven ? " on" : "")} onClick={() => setNoEven(true)}>Dürfen nicht aufgehen</button>
+                <button type="button" className={"wide" + (!noEven ? " on" : "")} onClick={() => setNoEven(false)}>Frei</button>
+              </div>
+              <p>{noEven
+                ? "Wer zuletzt ansagt, darf nicht so ansagen, dass die Summe aller Ansagen genau der Stichzahl der Runde entspricht – mindestens einer liegt also immer daneben."
+                : "Jeder darf frei ansagen, auch der Letzte."}</p>
+            </>
+          )}
+          {room.game === "sternbilder" && (
+            <>
+              <p>Kooperativ für 2–5 Spieler: Ihr seht alle Karten außer euren eigenen und legt gemeinsam fünf Sternbilder von 1 bis 5 aus – nur mit Hinweisen.</p>
+              <p>Hinweise:</p>
+              <div className="opts">
+                <button type="button" className={"wide" + (!memory ? " on" : "")} onClick={() => setMemory(false)}>Bleiben sichtbar</button>
+                <button type="button" className={"wide" + (memory ? " on" : "")} onClick={() => setMemory(true)}>Gedächtnis-Modus (schwer)</button>
+              </div>
+              <p>{memory
+                ? "Wie am Tisch: Ein Hinweis ist nur zu sehen, bis der Empfänger das nächste Mal am Zug war. Danach muss sich jeder selbst merken, was er weiß – oder sich mit der Reihenfolge seiner Karten helfen."
+                : "Was dir über deine Karten verraten wurde, bleibt auf den Karten stehen."}</p>
+            </>
+          )}
+          <div className="opts">
+            <button className="wide on" disabled={room.players.length < 2} onClick={() => socket.emit("start", { scoring, noEven, memory })}>
+              {room.players.length < 2 ? "Warte auf Mitspieler …" : "Spiel starten"}
+            </button>
+          </div>
         </>
-      )}
+      ) : <p>Warte, bis der Host das Spiel startet …</p>}
       <button className="ghost" onClick={leave}>Zurück zur Auswahl</button>
     </div></div>
   );

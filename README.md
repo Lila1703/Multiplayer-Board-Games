@@ -19,7 +19,7 @@ Karten- und Würfelspiele für Freunde, im Browser und am Handy. Einer erstellt 
 | Spiel | Art | Spieler | Online | An einem Gerät |
 |---|---|---|---|---|
 | Mensch ärgere dich nicht | Brettspiel | 2–4 | ✅ | ✅ |
-| Kniffel | Würfelspiel | 1–4 | ✅ | ✅ |
+| Kniffel | Würfelspiel | 1–10 | ✅ | ✅ |
 | Phase 10 | Kartenspiel | 2–6 | ✅ | – |
 | Schwimmen (31) | Kartenspiel | 2–8 | ✅ | – |
 | Zauberstich | Stichspiel mit Ansagen | 2–6 | ✅ | – |

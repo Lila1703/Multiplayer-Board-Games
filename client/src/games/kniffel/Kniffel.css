@@ -35,6 +35,17 @@
 @media (hover: hover) { .pick:hover { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); } }
 .peek { display: inline-block; min-width: 44px; padding: 2px 10px; border: 1px dashed var(--border-strong); border-radius: 8px; color: var(--accent); font-weight: 600; opacity: 0.75; }
 .peek.zero { color: var(--muted); opacity: 0.55; }
+/* Viele Spieler: Die Tabelle scrollt seitlich (.scroll). Links stehen bleiben die Kategorie-Spalte (feste Breite --cat)
+   und online die eigene Spalte (.own) direkt daneben. */
+.kn { --cat: 132px; }
+.kn th:first-child { width: var(--cat); min-width: var(--cat); }
+.kn th:first-child, .kn tr:not(.sep) td:first-child { position: sticky; left: 0; z-index: 1; box-shadow: 1px 0 0 var(--border); }
+.kn th.own, .kn td.own { position: sticky; left: var(--cat); z-index: 1; box-shadow: 1px 0 0 var(--border); }
+.kn tbody tr:not(.sep) td:first-child, .kn tbody td.own { background: var(--surface); }
+.kn tbody tr.sum td:first-child, .kn tbody tr.sum td.own { background: var(--surface-2); }
+.kn thead th.own:not(.active) { color: var(--text); }
+/* deckend, damit darunter durchscrollende Spalten nicht durchscheinen */
+.kn tbody td.own.active-col { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--surface); }
 
 @media (prefers-reduced-motion: reduce) { .cube { transition-duration: 0.01s; } }
 
@@ -48,9 +59,10 @@
   .dice { min-height: 86px; gap: 4px; }
   .die.held { margin-bottom: 24px; }
   .die.held::after { bottom: -19px; font-size: 0.62rem; }
-  /* Feste Spaltenbreiten: Die Tabelle passt immer in die Breite, lange Namen werden gekürzt */
-  .kn table { table-layout: fixed; }
-  .kn th:first-child { width: 114px; }
+  /* Feste Spaltenbreiten: Bis vier Spieler passt die Tabelle in die Breite, lange Namen werden gekürzt.
+     Darüber bleibt jede Spalte mindestens 52px breit und die Tabelle scrollt seitlich (--cols = Zahl der Spieler). */
+  .kn table { table-layout: fixed; min-width: calc(114px + var(--cols, 1) * 52px); }
+  .kn { --cat: 114px; }
   .kn thead th { overflow: hidden; text-overflow: ellipsis; }
   .kn thead th:not(:first-child) { padding-left: 2px; padding-right: 2px; letter-spacing: 0; }
   .kn td:not(:first-child) { padding-left: 3px; padding-right: 3px; }

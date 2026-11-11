@@ -1,11 +1,14 @@
 import { useState, useRef } from "react";
 import { CATS, score, upperSum, bonus, total } from "./scoring";
+import { GAMES } from "../catalog";
+import { useActiveColumn } from "./useActiveColumn";
 import "./Kniffel.css";
 
 // Cube rotation (x, y) that brings each value to the front
 const FACE_ROT = { 1: [0, 0], 6: [0, 180], 3: [0, -90], 4: [0, 90], 2: [-90, 0], 5: [90, 0] };
 const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
 const NO_HOLD = [false, false, false, false, false];
+const MAX_PLAYERS = GAMES.find((g) => g.id === "kniffel").max;
 
 export function Die({ value, spins, held, disabled, onClick, innerRef, label }) {
   const [x, y] = FACE_ROT[value];
@@ -43,9 +46,9 @@ const initial = (names) => ({
   rolls: 3, rolled: false, busy: false,
 });
 
-function Setup({ onStart }) {
+function Setup({ onStart, onBack }) {
   const [count, setCount] = useState(2);
-  const [names, setNames] = useState(["Spieler 1", "Spieler 2", "Spieler 3", "Spieler 4"]);
+  const [names, setNames] = useState(() => Array.from({ length: MAX_PLAYERS }, (_, i) => `Spieler ${i + 1}`));
   const start = (e) => {
     e.preventDefault();
     onStart(names.slice(0, count).map((n, i) => n.trim() || `Spieler ${i + 1}`));
@@ -55,7 +58,7 @@ function Setup({ onStart }) {
       <h2>Kniffel</h2>
       <p>Wie viele Spieler?</p>
       <div className="opts">
-        {[1, 2, 3, 4].map((n) => (
+        {names.map((_, i) => i + 1).map((n) => (
           <button type="button" key={n} className={n === count ? "on" : ""} onClick={() => setCount(n)}>{n}</button>
         ))}
       </div>
@@ -69,6 +72,7 @@ function Setup({ onStart }) {
       <div className="opts">
         <button type="submit" className="wide on">Spiel starten</button>
       </div>
+      {onBack && <button type="button" className="ghost" onClick={onBack}>Zurück zur Auswahl</button>}
     </form>
   );
 }
@@ -76,6 +80,7 @@ function Setup({ onStart }) {
 export default function Kniffel({ onBack }) {
   const [s, setS] = useState({ ...initial(["Spieler 1"]), phase: "setup" });
   const dieRefs = useRef([]);
+  const scrollRef = useActiveColumn(s.cur, s.players.length);
   const me = s.players[s.cur];
 
   function toggleHold(i) {
@@ -170,8 +175,8 @@ export default function Kniffel({ onBack }) {
         </section>
 
         <section className="sheet kn">
-          <div className="scroll">
-            <table>
+          <div className="scroll" ref={scrollRef}>
+            <table style={{ "--cols": s.players.length }}>
               <thead>
                 <tr>
                   <th>Kategorie</th>
@@ -200,7 +205,7 @@ export default function Kniffel({ onBack }) {
         <div className="overlay">
           <div className="card">
             {s.phase === "setup" ? (
-              <Setup onStart={(names) => setS(initial(names))} />
+              <Setup onStart={(names) => setS(initial(names))} onBack={onBack} />
             ) : (
               <>
                 <h2>{winners.map((p) => p.name).join(" und ")} {winners.length > 1 ? "gewinnen" : "gewinnt"}!</h2>

@@ -2,40 +2,60 @@ import { useState } from "react";
 import Kniffel from "./games/kniffel/Kniffel";
 import Ludo from "./games/ludo/Ludo";
 import Online from "./online/Online";
+import GameTile from "./components/GameTile";
+import { GAMES } from "./games/catalog";
 import "./App.css";
 
-// Neues Spiel hinzufügen: Komponente bauen und hier eintragen
-const GAMES = [
-  { id: "online", name: "Online spielen", icon: "🌐", players: "2–8 Spieler, jeder am eigenen Gerät", desc: "Mensch ärgere dich nicht, Kniffel, Phase 10, Schwimmen, Zauberstich oder Sternbilder per Einladungslink.", Component: Online },
-  { id: "ludo", name: "Mensch ärgere dich nicht", icon: "♟️", players: "2–4 Spieler", desc: "Würfeln, ziehen, rauswerfen.", Component: Ludo },
-  { id: "kniffel", name: "Kniffel", icon: "🎲", players: "1–4 Spieler", desc: "Würfeln, festhalten, punkten.", Component: Kniffel },
+// Neues lokales Spiel hinzufügen: Komponente bauen und hier eintragen (Name, Kurztext und Motiv kommen aus games/catalog.js)
+const LOCAL_GAMES = [
+  { id: "ludo", min: 2, Component: Ludo },
+  { id: "kniffel", min: 1, Component: Kniffel },
+].map((local) => {
+  const g = GAMES.find((x) => x.id === local.id);
+  return { ...g, ...local, players: `${local.min}–${g.max} Spieler` };
+});
+
+// „A, B oder C“
+const list = (names) => (names.length > 1 ? names.slice(0, -1).join(", ") + " oder " + names.at(-1) : names[0]);
+
+const MODES = [
+  { id: "local", name: "Lokal spielen", players: "Alle an einem Gerät", desc: list(LOCAL_GAMES.map((g) => g.name)) + ", abwechselnd am selben Bildschirm." },
+  { id: "online", name: "Online spielen", players: `2–${Math.max(...GAMES.map((g) => g.max))} Spieler, jeder am eigenen Gerät`, desc: list(GAMES.map((g) => g.name)) + " per Einladungslink." },
 ];
 
 export default function App() {
-  const [gameId, setGameId] = useState(location.hash.startsWith("#join=") ? "online" : null);
-  const game = GAMES.find((g) => g.id === gameId);
-  if (game) return <game.Component onBack={() => setGameId(null)} />;
+  // view: null = Hauptmenü, "local" = Auswahl der lokalen Spiele, "online" = Online-Bereich
+  const [view, setView] = useState(location.hash.startsWith("#join=") ? "online" : null);
+  const [gameId, setGameId] = useState(null);
+
+  if (view === "online") return <Online onBack={() => setView(null)} />;
+  const game = LOCAL_GAMES.find((g) => g.id === gameId);
+  if (view === "local" && game) return <game.Component onBack={() => setGameId(null)} />;
+
+  if (view === "local") {
+    return (
+      <main className="hub">
+        <header>
+          <button className="ghost" style={{ margin: 0 }} onClick={() => setView(null)}>← Hauptmenü</button>
+          <h1>Lokal spielen</h1>
+        </header>
+        <h2 className="section-label">Spiel auswählen</h2>
+        <div className="games">
+          {LOCAL_GAMES.map((g) => <GameTile key={g.id} art={g.id} name={g.name} desc={g.desc} meta={g.players} onClick={() => setGameId(g.id)} />)}
+        </div>
+      </main>
+    );
+  }
 
   return (
-    <main className="hub">
+    <main className="hub home">
       <div className="hub-head">
-        <span className="hub-logo" aria-hidden="true">🃏</span>
-        <div>
-          <h1>SynCard</h1>
-          <p className="sub">Lokal an einem Gerät oder online mit Freunden.</p>
-        </div>
+        <h1><img className="hub-logo" src="/syncard-logo.webp" width="640" height="523" alt="SynCard" /></h1>
+        <p className="sub">Lokal an einem Gerät oder online mit Freunden.</p>
       </div>
-      <h2 className="section-label">Spiel auswählen</h2>
-      <div className="games">
-        {GAMES.map((g) => (
-          <button key={g.id} className={"gamecard" + (g.id === "online" ? " featured" : "")} onClick={() => setGameId(g.id)}>
-            {g.id === "online" && <span className="badge">Neu</span>}
-            <span className="icon">{g.icon}</span>
-            <h2>{g.name}</h2>
-            <p>{g.desc}</p>
-            <span className="meta">{g.players}</span>
-          </button>
-        ))}
+      <h2 className="section-label">Wie wollt ihr spielen?</h2>
+      <div className="games modes">
+        {MODES.map((m) => <GameTile key={m.id} art={m.id} name={m.name} desc={m.desc} meta={m.players} onClick={() => setView(m.id)} />)}
       </div>
     </main>
   );

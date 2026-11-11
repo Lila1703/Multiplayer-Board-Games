@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Die } from "../games/kniffel/Kniffel";
+import { useActiveColumn } from "../games/kniffel/useActiveColumn";
 import { CATS, score, upperSum, bonus, total } from "../games/kniffel/scoring";
 
 export default function OnlineKniffel({ room, me, socket, onLeave }) {
@@ -9,6 +10,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
   const [settled, setSettled] = useState(true); // Würfel sind zur Ruhe gekommen
   const dieRefs = useRef([]);
   const lastRoll = useRef(s.rollId);
+  const scrollRef = useActiveColumn(s.cur, s.names.length);
 
   useEffect(() => {
     if (s.rollId === lastRoll.current) return;
@@ -29,7 +31,10 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
     return () => clearTimeout(t);
   }, [s.rollId]);
 
-  const players = s.names.map((name, i) => ({ name, scores: s.scores[i] }));
+  const players = s.names.map((name, i) => ({ name, scores: s.scores[i], i }));
+  // Spalten der Tabelle: die eigene ganz links (bleibt beim seitlichen Scrollen stehen), danach die anderen in Zugreihenfolge
+  const cols = players.map((_, k) => players[(me.index + k) % players.length]);
+  const own = (p) => (p.i === me.index ? "own" : "");
   const who = room.players[s.cur];
   const canRoll = myTurn && s.rolls > 0 && settled;
   const canPick = myTurn && s.rolled && settled;
@@ -40,8 +45,8 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
   const row = (c) => (
     <tr key={c.id}>
       <td>{c.name}</td>
-      {players.map((p, i) => {
-        const active = i === s.cur;
+      {cols.map((p) => {
+        const active = p.i === s.cur;
         let content = null;
         if (c.id in p.scores) content = p.scores[c.id];
         else if (active && s.rolled && settled && !s.over) {
@@ -51,7 +56,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
             ? <button className={"pick" + (v === 0 ? " zero" : "")} onClick={() => socket.emit("k:pick", c.id)}>{v}</button>
             : <span className={"peek" + (v === 0 ? " zero" : "")}>{v}</span>;
         }
-        return <td key={i} className={active ? "active-col" : ""}>{content}</td>;
+        return <td key={p.i} className={own(p) + (active ? " active-col" : "")}>{content}</td>;
       })}
     </tr>
   );
@@ -86,16 +91,16 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
           </div>
         </section>
 
-        <section className="sheet kn"><div className="scroll"><table>
+        <section className="sheet kn"><div className="scroll" ref={scrollRef}><table style={{ "--cols": players.length }}>
           <thead><tr><th>Kategorie</th>
-            {players.map((p, i) => <th key={i} className={i === s.cur ? "active" : ""}>{p.name}{i === me.index ? " (du)" : ""}</th>)}
+            {cols.map((p) => <th key={p.i} className={own(p) + (p.i === s.cur ? " active" : "")}>{p.name}{p.i === me.index && <span className="lg-only"> (du)</span>}</th>)}
           </tr></thead>
           <tbody>
             {CATS.filter((c) => c.up).map(row)}
-            <tr><td>Bonus (ab 63)</td>{players.map((p, i) => <td key={i}>{bonus(p) || `${upperSum(p)}/63`}</td>)}</tr>
+            <tr><td>Bonus (ab 63)</td>{cols.map((p) => <td key={p.i} className={own(p)}>{bonus(p) || `${upperSum(p)}/63`}</td>)}</tr>
             <tr className="sep"><td colSpan={players.length + 1} /></tr>
             {CATS.filter((c) => !c.up).map(row)}
-            <tr className="sum"><td>Gesamt</td>{players.map((p, i) => <td key={i}>{total(p)}</td>)}</tr>
+            <tr className="sum"><td>Gesamt</td>{cols.map((p) => <td key={p.i} className={own(p)}>{total(p)}</td>)}</tr>
           </tbody>
         </table></div></section>
       </div>

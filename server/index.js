@@ -13,7 +13,7 @@ import { createSternbilder, act as sbAct, viewSternbilder } from "../client/src/
 
 const VIEWS = { phase10: viewP10, schwimmen: viewSchwimmen, zauberstich: viewZauberstich, sternbilder: viewSternbilder };
 const GAMES = ["ludo", "kniffel", "phase10", "schwimmen", "zauberstich", "sternbilder"];
-const MAX_PLAYERS = { ludo: 4, kniffel: 4, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5 };
+const MAX_PLAYERS = { ludo: 4, kniffel: 10, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5 };
 // Ist das laufende Spiel zu Ende? (dann darf der Host zurück in die Lobby)
 const isOver = (r) => !r.state || (r.game === "kniffel" ? r.state.over
   : ["phase10", "schwimmen", "zauberstich", "sternbilder"].includes(r.game) ? r.state.stage === "over" : r.state.winner !== null);
