@@ -1,6 +1,8 @@
 /* Dice (--d = Kantenlänge, auf sehr schmalen Handys kleiner) */
 .dice { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; min-height: 112px; justify-items: center; align-items: end; }
-.die { width: var(--d, 56px); height: var(--d, 56px); position: relative; cursor: pointer; border: 0; background: none; padding: 0; margin-bottom: 0; transition: margin 0.2s; perspective: 400px; }
+.die { width: var(--d, 56px); height: var(--d, 56px); position: relative; cursor: pointer; border: 0; background: none; padding: 0; margin-bottom: 0; transition: margin 0.2s;
+  /* Perspektive wächst mit der Würfelgröße (400px bei 56px), damit die flache Ruhefläche (.flat) immer gleich skaliert wird */
+  perspective: calc(var(--d, 56px) * 50 / 7); }
 .die.held { margin-bottom: 34px; }
 .die.held::after { content: "gehalten"; position: absolute; left: 50%; bottom: -24px; transform: translateX(-50%); font-size: 0.7rem; color: var(--accent); font-weight: 600; letter-spacing: 0.02em; }
 .die:disabled { cursor: default; }
@@ -13,6 +15,10 @@
   display: grid; grid-template: repeat(3, 1fr) / repeat(3, 1fr);
   backface-visibility: hidden; box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.1);
 }
+/* Ruhender Würfel: 3D-Würfel ausblenden, flache Kopie der Vorderseite zeigen (siehe Die in Kniffel.jsx).
+   scale = Perspektive / (Perspektive − halbe Kante) = (50/7) / (50/7 − 1/2) – so groß erscheint die 3D-Vorderseite. */
+.cube.resting .face, .cube.resting .pip { visibility: hidden; }
+.face.flat { transform: scale(calc(100 / 93)); pointer-events: none; }
 .pip { border-radius: 50%; background: var(--pip); transform: scale(0.62); visibility: hidden; }
 .pip.on { visibility: visible; }
 .f1 { transform: translateZ(calc(var(--d, 56px) / 2)); }

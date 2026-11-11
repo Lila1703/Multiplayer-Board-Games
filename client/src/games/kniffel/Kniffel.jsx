@@ -10,18 +10,28 @@ const NO_HOLD = [false, false, false, false, false];
 export function Die({ value, spins, held, disabled, onClick, innerRef, label }) {
   const [x, y] = FACE_ROT[value];
   const n = spins * 360;
+  // Liegt der Würfel still, wird statt des 3D-Würfels eine flache Kopie der Vorderseite gezeigt. Ruhende 3D-Flächen
+  // zeichnen Browser sonst mit dünnen Strichen: Chrome die seitlich stehende Oberseite, Firefox nach Layoutänderungen
+  // (z. B. wenn ein Nachbarwürfel gehalten wird) einen senkrechten Strich mitten in der Vorderseite.
+  const key = `${value}/${spins}`; // Ruhezustand = dieser Wert nach dieser Drehung
+  const [restKey, setRestKey] = useState(key);
+  const resting = restKey === key;
+  const onEnd = (e) => { if (e.target === e.currentTarget && e.propertyName === "transform") setRestKey(key); };
+  const face = (f, cls = "") => (
+    <div key={f} className={`face f${f}${cls}`}>
+      {Array.from({ length: 9 }, (_, k) => (
+        <span key={k} className={"pip" + (PIPS[f].includes(k) ? " on" : "")} />
+      ))}
+    </div>
+  );
   return (
     <button ref={innerRef} className={"die" + (held ? " held" : "")}
       disabled={disabled} onClick={onClick} aria-label={label}>
-      <div className="cube" style={{ transform: `rotateX(${x + n}deg) rotateY(${y + n}deg)` }}>
-        {[1, 2, 3, 4, 5, 6].map((f) => (
-          <div key={f} className={`face f${f}`}>
-            {Array.from({ length: 9 }, (_, k) => (
-              <span key={k} className={"pip" + (PIPS[f].includes(k) ? " on" : "")} />
-            ))}
-          </div>
-        ))}
+      <div className={"cube" + (resting ? " resting" : "")} onTransitionEnd={onEnd}
+        style={{ transform: `rotateX(${x + n}deg) rotateY(${y + n}deg)` }}>
+        {[1, 2, 3, 4, 5, 6].map((f) => face(f))}
       </div>
+      {resting && face(value, " flat")}
     </button>
   );
 }

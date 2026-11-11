@@ -1,3 +1,4 @@
+import { useState } from "react";
 import "./Die3D.css";
 
 // Drehung (x, y), die jeden Wert nach vorne bringt
@@ -8,17 +9,27 @@ const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6,
 export default function Die3D({ value, spins = 0, innerRef, size }) {
   const [x, y] = FACE_ROT[value];
   const n = spins * 360;
+  // Liegt der Würfel still, wird statt des 3D-Würfels eine flache Kopie der Vorderseite gezeigt. Ruhende 3D-Flächen
+  // zeichnen Browser sonst mit dünnen Strichen: Chrome die seitlich stehende Oberseite, Firefox nach Layoutänderungen
+  // einen senkrechten Strich mitten in der Vorderseite.
+  const key = `${value}/${spins}`; // Ruhezustand = dieser Wert nach dieser Drehung
+  const [restKey, setRestKey] = useState(key);
+  const resting = restKey === key;
+  const onEnd = (e) => { if (e.target === e.currentTarget && e.propertyName === "transform") setRestKey(key); };
+  const face = (f, cls = "") => (
+    <div key={f} className={`d3-face d3-f${f}${cls}`}>
+      {Array.from({ length: 9 }, (_, k) => (
+        <span key={k} className={"d3-pip" + (PIPS[f].includes(k) ? " on" : "")} />
+      ))}
+    </div>
+  );
   return (
     <div ref={innerRef} className="d3" style={size ? { "--s": `${size}px` } : undefined} role="img" aria-label={`Würfel zeigt ${value}`}>
-      <div className="d3-cube" style={{ transform: `rotateX(${x + n}deg) rotateY(${y + n}deg)` }}>
-        {[1, 2, 3, 4, 5, 6].map((f) => (
-          <div key={f} className={`d3-face d3-f${f}`}>
-            {Array.from({ length: 9 }, (_, k) => (
-              <span key={k} className={"d3-pip" + (PIPS[f].includes(k) ? " on" : "")} />
-            ))}
-          </div>
-        ))}
+      <div className={"d3-cube" + (resting ? " resting" : "")} onTransitionEnd={onEnd}
+        style={{ transform: `rotateX(${x + n}deg) rotateY(${y + n}deg)` }}>
+        {[1, 2, 3, 4, 5, 6].map((f) => face(f))}
       </div>
+      {resting && face(value, " d3-flat")}
     </div>
   );
 }
