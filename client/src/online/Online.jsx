@@ -18,7 +18,7 @@ const hashCode = () => (location.hash.startsWith("#join=") ? location.hash.slice
 const savedName = () => { const n = (localStorage.getItem("name") || "").trim(); return n === "Spieler" ? "" : n; };
 // Teilen-Menü des Handys (WhatsApp usw.) – nur auf Touch-Geräten, am Desktop bleibt es bei „Link kopieren“
 const canShare = typeof navigator.share === "function" && !!window.matchMedia?.("(pointer: coarse)").matches;
-// Läuft gerade eine Partie? (Gegenstück zu isOver im Server)
+// Läuft gerade eine Partie?
 const running = (r) => !!r?.state && !(r.game === "kniffel" ? r.state.over
   : ["phase10", "schwimmen", "zauberstich", "sternbilder"].includes(r.game) ? r.state.stage === "over" : r.state.winner !== null);
 
@@ -80,7 +80,8 @@ export default function Online({ onBack }) {
     history.replaceState(null, "", location.pathname);
     onBack();
   };
-  // Mitten in einer Partie erst nachfragen: Wer geht, kann in diese Partie nicht wieder einsteigen
+  // Mitten in einer Partie erst nachfragen: Wer geht, kann in diese Partie nicht wieder einsteigen.
+  // Der Host kann stattdessen mit allen zurück in die Lobby und dort ein anderes Spiel wählen.
   const askLeave = () => (running(room) ? setAsking(true) : leave());
   useWakeLock(!!(room && me && room.state));
 
@@ -96,11 +97,25 @@ export default function Online({ onBack }) {
         {asking && running(room) && (
           <div className="overlay"><div className="card">
             <h2>Spiel verlassen?</h2>
-            <p>Die Partie läuft noch. Wenn du gehst, kannst du in diese Partie nicht wieder einsteigen.</p>
-            <div className="opts">
-              <button className="wide on" onClick={() => setAsking(false)}>Weiterspielen</button>
-              <button className="wide" onClick={leave}>Verlassen</button>
-            </div>
+            {me.index === 0 ? (
+              <>
+                <p>Die Partie läuft noch. <b>Zurück zur Lobby</b> beendet sie für alle: Ihr bleibt zusammen im Raum und du kannst ein anderes Spiel wählen.</p>
+                <p>Gehst du zum <b>Hauptmenü</b>, verlässt du den Raum und kannst in diese Partie nicht wieder einsteigen.</p>
+                <div className="opts">
+                  <button className="wide on" onClick={() => setAsking(false)}>Weiterspielen</button>
+                  <button className="wide" onClick={() => { socket.emit("lobby"); setAsking(false); }}>Zurück zur Lobby</button>
+                  <button className="wide" onClick={leave}>Zum Hauptmenü</button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p>Die Partie läuft noch. Wenn du gehst, kannst du in diese Partie nicht wieder einsteigen.</p>
+                <div className="opts">
+                  <button className="wide on" onClick={() => setAsking(false)}>Weiterspielen</button>
+                  <button className="wide" onClick={leave}>Verlassen</button>
+                </div>
+              </>
+            )}
           </div></div>
         )}
       </>

@@ -14,9 +14,6 @@ import { createSternbilder, act as sbAct, viewSternbilder } from "../client/src/
 const VIEWS = { phase10: viewP10, schwimmen: viewSchwimmen, zauberstich: viewZauberstich, sternbilder: viewSternbilder };
 const GAMES = ["ludo", "kniffel", "phase10", "schwimmen", "zauberstich", "sternbilder"];
 const MAX_PLAYERS = { ludo: 4, kniffel: 10, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5 };
-// Ist das laufende Spiel zu Ende? (dann darf der Host zurück in die Lobby)
-const isOver = (r) => !r.state || (r.game === "kniffel" ? r.state.over
-  : ["phase10", "schwimmen", "zauberstich", "sternbilder"].includes(r.game) ? r.state.stage === "over" : r.state.winner !== null);
 
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "../client/dist");
 const app = express();
@@ -78,9 +75,10 @@ io.on("connection", (socket) => {
       : room.game === "sternbilder" ? createSternbilder(names, room.opts) : createGame(names);
     push(room);
   });
-  // Nach Spielende: alle zurück in die Lobby desselben Raums, dort wählt der Host das nächste Spiel
+  // Alle zurück in die Lobby desselben Raums, dort wählt der Host das nächste Spiel.
+  // Geht nach Spielende und auch mittendrin – dann bricht der Host die laufende Partie für alle ab.
   socket.on("lobby", () => {
-    if (!room || room.players[0] !== me || !isOver(room)) return;
+    if (!room || room.players[0] !== me) return;
     room.state = null; push(room);
   });
   socket.on("game", (game) => {
