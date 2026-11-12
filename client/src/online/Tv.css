@@ -1,0 +1,46 @@
+/* Fernseher-Modus: Ein Gerät am Fernseher oder Beamer zeigt den Tisch, gespielt wird an den Handys.
+   Online.jsx setzt am <html> die Klasse tv-mode und --tvz: Damit wird die ganze Seite so vergrößert, dass sie sich
+   wie ein Fenster von etwa 1200 × 720 verhält. Die Spiele behalten so ihr Desktop-Layout und sind vom Sofa aus lesbar. */
+.tv-mode #root { zoom: var(--tvz, 1); }
+/* Die Höhe des Fensters gilt in vergrößerten Pixeln – sonst würde die Seite länger als der Bildschirm und scrollt */
+.tv-mode body, .tv-mode #root { min-height: 0; }
+.tv-mode .card { max-width: 560px; max-height: calc((100vh - 40px) / var(--tvz, 1)); }
+
+/* Startseite: Umschalter für den Fernseher-Modus */
+.tvswitch .opts { justify-content: flex-start; margin: 0; }
+.tvswitch p { color: var(--muted); margin: 10px 0 0; max-width: 640px; }
+
+/* ---------- Lobby auf dem Fernseher: links QR-Code und Raumcode, rechts Spieler und Spielauswahl ---------- */
+.tv-lobby { max-width: 1200px; display: grid; grid-template-columns: 300px 1fr; gap: 20px; align-items: start; }
+.tvl-join, .tvl-room { padding: 24px; text-align: center; }
+.tvl-join p { margin: 12px 0 0; color: var(--muted); }
+.tvl-qr { background: #fff; border-radius: 14px; padding: 10px; aspect-ratio: 1; }
+.tvl-qr svg { display: block; width: 100%; height: 100%; }
+.tvl-join .tvl-link { color: var(--text); font-weight: 650; overflow-wrap: anywhere; margin-top: 4px; }
+.tvl-join .tvl-code { font-size: 3.4rem; font-weight: 800; letter-spacing: 0.16em; line-height: 1.1; color: var(--accent); margin-top: 0; }
+.tvl-join .error { color: var(--danger); font-weight: 650; }
+.tvl-room > p { color: var(--muted); }
+.tvl-room > p b { color: var(--text); }
+.tvl-room .lobby-head { margin-bottom: 8px; }
+.tvl-room .lobby-head .art { width: 84px; }
+.tvl-room .gamepick { grid-template-columns: repeat(5, 1fr); }
+/* Spieler als Schilder nebeneinander statt untereinander */
+.tvl-room .lobby-players { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 8px 0 14px; font-size: 1.15rem; line-height: 1.3; color: var(--text); }
+.tvl-room .lobby-players br { display: none; }
+.tvl-room .lobby-players span { padding: 6px 14px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border-strong); }
+.tvl-room .tvl-foot { display: flex; justify-content: center; gap: 8px; }
+
+/* ---------- Spiele auf dem Fernseher ---------- */
+main.tv { max-width: 1200px; padding-top: 14px; padding-bottom: 8px; }
+main.tv header .ghost { opacity: 0.55; }
+main.tv header .status { font-size: 1rem; }
+/* Tischkarten größer – die eigene Hand fehlt ja, Platz ist genug */
+.sw.tv .felt .row-cards, .mm.tv .mm-piles { zoom: 1.6; }
+.dk.tv .dk-table { zoom: 1.5; }
+.dk.tv .dk-top { zoom: 1.2; }
+.sr.tv .felt-row { zoom: 1.45; }
+.sw.tv .seats { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
+/* Sternbilder: Hände in zwei Spalten, damit alle auf einen Blick zu sehen sind */
+.sb.tv .hands { grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+/* Kniffel: Block mit allen Spalten, Zeilen etwas enger */
+.kn-tv .kn td, .kn-tv .kn th { padding-top: 5px; padding-bottom: 5px; }

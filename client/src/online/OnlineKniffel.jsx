@@ -5,6 +5,7 @@ import { CATS, score, upperSum, bonus, total } from "../games/kniffel/scoring";
 
 export default function OnlineKniffel({ room, me, socket, onLeave }) {
   const s = room.state;
+  const tv = !!me.tv; // Fernseher: zeigt Würfel und Block, gewürfelt wird am Handy
   const myTurn = s.cur === me.index && !s.over;
   const [spins, setSpins] = useState([0, 0, 0, 0, 0]);
   const [settled, setSettled] = useState(true); // Würfel sind zur Ruhe gekommen
@@ -32,13 +33,14 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
   }, [s.rollId]);
 
   const players = s.names.map((name, i) => ({ name, scores: s.scores[i], i }));
-  // Spalten der Tabelle: die eigene ganz links (bleibt beim seitlichen Scrollen stehen), danach die anderen in Zugreihenfolge
-  const cols = players.map((_, k) => players[(me.index + k) % players.length]);
+  // Spalten der Tabelle: die eigene ganz links (bleibt beim seitlichen Scrollen stehen), danach die anderen in Zugreihenfolge.
+  // Der Fernseher hat keine eigene Spalte: alle der Reihe nach.
+  const cols = tv ? players : players.map((_, k) => players[(me.index + k) % players.length]);
   const own = (p) => (p.i === me.index ? "own" : "");
   const who = room.players[s.cur];
   const canRoll = myTurn && s.rolls > 0 && settled;
   const canPick = myTurn && s.rolled && settled;
-  const hint = !settled ? "" : !myTurn ? `${who.name} ist dran …` : !s.rolled ? "Du bist dran – würfle!"
+  const hint = !settled ? "" : tv ? (s.over ? "" : !s.rolled ? `${who.name} würfelt …` : `${who.name} überlegt …`) : !myTurn ? `${who.name} ist dran …` : !s.rolled ? "Du bist dran – würfle!"
     : s.rolls > 0 ? "Tippe auf Würfel, die du behalten willst – oder trage ein Ergebnis ein."
     : "Keine Würfe mehr – wähle ein Feld in der Tabelle.";
 
@@ -65,7 +67,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
   const winners = ranked.filter((p) => total(p) === total(ranked[0]));
 
   return (
-    <main>
+    <main className={tv ? "kn-tv tv" : undefined}>
       <header>
         <button className="ghost" style={{ margin: 0 }} onClick={onLeave}>← Verlassen</button>
         <h1>Online Kniffel · {room.code}</h1>
@@ -75,7 +77,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
       </header>
 
       <div className="layout">
-        <section className="tray dock" aria-label="Würfel">
+        <section className={"tray" + (tv ? "" : " dock")} aria-label="Würfel">
           <div className="dice">
             {s.dice.map((v, i) => (
               <Die key={i} value={v} spins={spins[i]} held={s.held[i]} label={`Würfel ${i + 1}`}
@@ -84,9 +86,11 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
             ))}
           </div>
           <div className="controls">
-            <button className="roll" disabled={!canRoll} onClick={() => socket.emit("k:roll")}>
-              {s.rolled ? "Nochmal würfeln" : "Würfeln"}
-            </button>
+            {!tv && (
+              <button className="roll" disabled={!canRoll} onClick={() => socket.emit("k:roll")}>
+                {s.rolled ? "Nochmal würfeln" : "Würfeln"}
+              </button>
+            )}
             <p className="hint">{hint}</p>
           </div>
         </section>
@@ -109,7 +113,7 @@ export default function OnlineKniffel({ room, me, socket, onLeave }) {
         <div className="overlay"><div className="card">
           <h2>{winners.map((p) => p.name).join(" und ")} {winners.length > 1 ? "gewinnen" : "gewinnt"}!</h2>
           <p>{ranked.map((p) => <span key={p.name}>{p.name}: <b>{total(p)}</b><br /></span>)}</p>
-          {me.index === 0
+          {me.host
             ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>
             : <p>Warte auf den Host …</p>}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>

@@ -185,6 +185,90 @@ const ART = {
       </>
     ),
   },
+  // Halb ausgefülltes Sudoku-Blatt (eine Zahl frisch eingetragen) und die Stoppuhr, die mitläuft
+  sudoku: {
+    bg: "linear-gradient(140deg, #9a3a66, #40142b)",
+    el: (
+      <>
+        <g transform="rotate(-5 60 50)">
+          <rect x="24" y="17" width="72" height="72" rx="6" fill="rgba(0,0,0,.3)" />
+          <rect x="24" y="14" width="72" height="72" rx="6" fill={WHITE} />
+          <rect x="48" y="38" width="24" height="24" fill="#f8dfa0" />
+          <path d="M48 16 V84 M72 16 V84 M26 38 H94 M26 62 H94" fill="none" stroke={INK} strokeWidth="1.8" strokeLinecap="round" />
+          {[[0, 0, "5"], [2, 0, "3"], [1, 1, "7"], [0, 2, "9"], [2, 1, "1"], [1, 2, "4"]].map(([cx, cy, d]) => (
+            <text key={d} x={36 + cx * 24} y={32.5 + cy * 24} fontSize="18" fontWeight="800" textAnchor="middle" fill={d === "7" ? "#b0531a" : INK}>{d}</text>
+          ))}
+        </g>
+        <g transform="translate(126 56)">
+          <rect x="-4" y="-27" width="8" height="7" rx="2" fill={WHITE} />
+          <path d="M13 -17 L17 -21" stroke={WHITE} strokeWidth="3.4" strokeLinecap="round" />
+          <circle r="20" fill="#12151a" stroke={WHITE} strokeWidth="3" />
+          {[0, 90, 180, 270].map((a) => <path key={a} transform={`rotate(${a})`} d="M0 -15 V-12" stroke={WHITE} strokeWidth="2" strokeLinecap="round" />)}
+          <path d="M0 0 L8 -9" stroke={GOLD} strokeWidth="3" strokeLinecap="round" />
+          <circle r="2.6" fill={GOLD} />
+        </g>
+      </>
+    ),
+  },
+  // Verdeckter Stapel, darauf eine Sieben und der Bube – und einer ruft „Mau!“
+  maumau: {
+    bg: "linear-gradient(140deg, #2c6c9c, #112c44)",
+    el: (
+      <>
+        <g transform="translate(42 54) rotate(-12)">
+          <rect x="-15" y="-21" width="30" height="42" rx="4" fill="#b8342b" stroke="#fff" strokeWidth="2" />
+          <rect x="-10" y="-16" width="20" height="32" rx="2" fill="none" stroke="rgba(255,255,255,.55)" strokeWidth="1.4" />
+          <path d="M0 -8 L6 0 L0 8 L-6 0 Z" fill="rgba(255,255,255,.55)" />
+        </g>
+        <PlayingCard x={76} y={52} rot={2} rank="7" />
+        <PlayingCard x={106} y={58} rot={15} rank="B" />
+        <g transform="translate(124 21)">
+          <path d="M-27 -13 H27 Q31 -13 31 -9 V7 Q31 11 27 11 H-8 L-17 20 L-15 11 H-27 Q-31 11 -31 7 V-9 Q-31 -13 -27 -13 Z" fill={GOLD} />
+          <text x="0" y="4.5" fontSize="15" fontWeight="800" textAnchor="middle" fill="#2a1f1a">Mau!</text>
+        </g>
+      </>
+    ),
+  },
+  // Eine Neun wird vom Ass geschlagen, daneben die Narrenkappe für den Durak („Dummkopf“)
+  durak: {
+    bg: "linear-gradient(140deg, #6a7a2c, #2a3312)",
+    el: (
+      <>
+        <PlayingCard x={40} y={46} rot={-10} rank="9" />
+        <PlayingCard x={60} y={56} rot={8} rank="A" />
+        <g transform="translate(116 58)">
+          <path d="M-17 13 Q-36 -4 -31 -22 Q-15 -12 -5 13 Z" fill={RED} />
+          <path d="M17 13 Q36 -4 31 -22 Q15 -12 5 13 Z" fill={BLUE} />
+          <path d="M-11 13 Q-8 -18 0 -33 Q8 -18 11 13 Z" fill={YELLOW} />
+          <rect x="-21" y="10" width="42" height="9" rx="4.5" fill={WHITE} />
+          {[[-31, -23], [0, -34], [31, -23]].map(([x, y]) => <circle key={x} cx={x} cy={y} r="4.5" fill={GOLD} stroke="#2a1f1a" strokeWidth="1" />)}
+        </g>
+      </>
+    ),
+  },
+  // Zwei Landmassen, eine rote Fahne greift über einen Angriffspfeil die blaue an, daneben zwei Würfel
+  eroberung: {
+    bg: "linear-gradient(150deg, #1f4f73, #0e2438)",
+    el: (
+      <>
+        <path d="M8 30 Q18 14 40 18 Q58 12 66 26 Q74 40 60 50 Q52 66 34 62 Q14 64 10 50 Q2 40 8 30 Z" fill={RED} opacity="0.9" />
+        <path d="M92 40 Q104 24 126 28 Q150 26 154 46 Q158 66 138 74 Q120 88 102 78 Q86 70 88 56 Q86 46 92 40 Z" fill={BLUE} opacity="0.9" />
+        <path d="M38 84 Q48 76 60 82 Q66 92 54 96 Q40 98 38 84 Z" fill={GREEN} opacity="0.85" />
+        <path d="M56 40 Q80 22 104 42" fill="none" stroke={WHITE} strokeWidth="3" strokeLinecap="round" strokeDasharray="5 4" />
+        <path d="M99 33 L107 45 L94 46 Z" fill={WHITE} />
+        <g transform="translate(36 40)">
+          <path d="M0 0 V-22" stroke={INK} strokeWidth="2.4" strokeLinecap="round" />
+          <path d="M1 -22 L16 -17 L1 -12 Z" fill={WHITE} />
+        </g>
+        <g transform="translate(124 58)">
+          <path d="M0 0 V-22" stroke={INK} strokeWidth="2.4" strokeLinecap="round" />
+          <path d="M1 -22 L16 -17 L1 -12 Z" fill={GOLD} />
+        </g>
+        <Die x={100} y={84} size={19} n={6} rot={-10} />
+        <Die x={124} y={88} size={19} n={5} rot={12} />
+      </>
+    ),
+  },
   // Alle zusammen vor einem Fernseher (von hinten gesehen)
   local: {
     bg: "linear-gradient(140deg, #5a4c2c, #262117)",

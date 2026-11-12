@@ -7,6 +7,7 @@ Karten- und Würfelspiele für Freunde, im Browser und am Handy. Einer erstellt 
 ## Inhalt
 
 - [Die Spiele](#die-spiele)
+- [Fernseher-Modus](#fernseher-modus)
 - [Installation](#installation)
   - [Variante A: Hosting bei Render](#variante-a-hosting-bei-render)
   - [Variante B: Auf dem eigenen PC mit start.bat](#variante-b-auf-dem-eigenen-pc-mit-startbat)
@@ -24,6 +25,7 @@ Karten- und Würfelspiele für Freunde, im Browser und am Handy. Einer erstellt 
 | Schwimmen (31) | Kartenspiel | 2–8 | ✅ | – |
 | Zauberstich | Stichspiel mit Ansagen | 2–6 | ✅ | – |
 | Sternbilder | Kooperatives Kartenspiel | 2–5 | ✅ | – |
+| Eroberungsspiel | Strategiespiel | 2–6 | – | ✅ |
 
 ### Mensch ärgere dich nicht
 Der Klassiker. Mit einer 6 kommst du aus dem Haus. Landest du auf einer gegnerischen Figur, fliegt sie raus. Wer zuerst alle vier Figuren im Ziel hat, gewinnt.
@@ -76,6 +78,37 @@ In deinem Zug machst du genau eine dieser drei Sachen:
 
 Wer ein Sternbild mit der 5 vollendet, bekommt einen Hinweis zurück. Ist der Stapel leer, kommt jeder noch einmal dran. Am Ende zählen die angelegten Karten, maximal 25 Punkte.
 **Option Gedächtnis-Modus:** Hinweise verschwinden wieder, sobald du das nächste Mal dran warst. Du musst sie dir also merken.
+
+### Eroberungsspiel
+Ein Strategiespiel auf einer Weltkarte mit 49 Gebieten in 8 Regionen, gespielt abwechselnd an einem Gerät. Die Gebiete werden zufällig verteilt, auf jedem steht anfangs eine Armee. Die übrigen Startarmeen setzt ihr reihum, jeweils drei.
+
+Jeder Zug hat drei Schritte:
+- **Verstärken:** Du bekommst ein Drittel deiner Gebietszahl als Armeen (mindestens 3), dazu den Bonus jeder Region, die dir ganz gehört.
+- **Angreifen:** Aus einem Gebiet mit mindestens 2 Armeen greifst du ein fremdes Nachbargebiet an; gestrichelte Linien sind Seewege. Du würfelst mit bis zu 3 Würfeln, der Verteidiger mit bis zu 2. Die höchsten Würfel werden paarweise verglichen, bei Gleichstand gewinnt der Verteidiger. „Bis zum Ende“ würfelt so lange, bis das Gebiet erobert ist oder du nur noch eine Armee hast.
+- **Verschieben:** Einmal Armeen zwischen zwei eigenen Gebieten verschieben, die über eigene Gebiete verbunden sind.
+
+Wer in einem Zug mindestens ein Gebiet erobert, bekommt eine Karte. Drei gleiche oder drei verschiedene Symbole (Joker passen immer) tauschst du gegen 4, 6, 8, 10, 12, 15 und danach je 5 Armeen mehr. Ab 5 Karten musst du tauschen.
+
+Jeder bekommt zu Beginn einen **geheimen Auftrag**, z. B. zwei bestimmte Regionen erobern, 31 Gebiete besetzen oder einen bestimmten Mitspieler ausschalten. Er wird erst nach „Die anderen schauen weg“ angezeigt. Wer seinen Auftrag zuerst erfüllt oder alle anderen ausschaltet, gewinnt. Zu zweit spielen neutrale graue Armeen mit, die nie angreifen.
+
+Die Regionsboni, die Aufträge und einige Extra-Startarmeen für benachteiligte Sitzplätze sind so eingestellt, dass in Tausenden simulierten Partien kein Platz und kein Auftrag deutlich im Vorteil war. Die Karte entsteht aus den gemeinfreien Ländergrenzen von Natural Earth.
+
+---
+
+## Fernseher-Modus
+
+Ihr sitzt zusammen im Wohnzimmer und habt einen Fernseher oder Beamer? Dann kann ein Laptop am Fernseher den gemeinsamen Tisch groß zeigen, während jeder an seinem Handy spielt und dort seine Karten sieht.
+
+1. Den Laptop per HDMI an den Fernseher anschließen und SynCard öffnen.
+2. **Online spielen** → **📺 Dieses Gerät ist der Fernseher** wählen und ein Spiel antippen.
+3. Die Handys scannen den QR-Code auf dem Fernseher (oder geben den Raumcode ein).
+4. Am Fernseher oder am Handy des ersten Spielers (Spielleiter) auf **Spiel starten** tippen. Mit **Vollbild** verschwinden die Browserleisten.
+
+Der Fernseher spielt nicht mit und bekommt vom Server keine einzige Handkarte zu sehen. Bei Sternbilder zeigt er alle Hände verdeckt, nur mit den Hinweisen, die jeder über seine Karten bekommen hat. Spielauswahl, „Nochmal spielen“ und „Zurück zur Lobby“ gehen am Fernseher und beim Spielleiter.
+
+Möglich sind alle Online-Spiele außer *Mensch ärgere dich nicht* und *Sudoku Battle*: Bei diesen beiden sieht man am Handy ohnehin schon alles.
+
+**Wichtig:** Öffne SynCard am Laptop über die öffentliche Adresse (Render oder die Tunnel-Adresse von `start.bat`), nicht über `localhost`. Sonst steht `localhost` im QR-Code, und die Handys finden den Raum nicht.
 
 ---
 
@@ -174,7 +207,7 @@ Andere Geräte im selben WLAN erreichen den Server über die IP-Adresse des PCs,
 ├── client/                React-App (Vite)
 │   └── src/
 │       ├── App.jsx        Startseite mit der Spielauswahl
-│       ├── games/         Spiele für ein Gerät (Kniffel, Mensch ärgere dich nicht)
+│       ├── games/         Spiele für ein Gerät (Kniffel, Mensch ärgere dich nicht, Eroberungsspiel)
 │       ├── online/        Online-Ansichten der Spiele und die Lobby (Online.jsx)
 │       └── shared/        Spiellogik, die Server und Browser gemeinsam nutzen
 ├── render.yaml            Konfiguration für Render
@@ -184,4 +217,4 @@ Andere Geräte im selben WLAN erreichen den Server über die IP-Adresse des PCs,
 
 Der Server entscheidet über alle Spielzüge (Mischen, Regeln prüfen) und schickt jedem Spieler nur das, was er sehen darf. Die Regeln jedes Spiels stehen in `client/src/shared/<spiel>.js`.
 
-**Neues Spiel hinzufügen:** Spiellogik in `shared/` anlegen, in `server/index.js` eintragen (`GAMES`, `MAX_PLAYERS`) und eine Ansicht in `online/` bauen.
+**Neues Spiel hinzufügen:** Spiellogik in `shared/` anlegen, in `server/index.js` eintragen (`GAMES`, `MAX_PLAYERS`) und eine Ansicht in `online/` bauen. Für den Fernseher-Modus bekommt die Ansicht `me.tv` (die eigene Hand ausblenden) und die `view`-Funktion den Spielerindex `-1` (keine Hand verraten). Soll das Spiel nicht im Fernseher-Modus laufen, kommt es in `NO_TV` (Server) und bekommt `noTv` in `games/catalog.js`.

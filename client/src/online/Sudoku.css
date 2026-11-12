@@ -1,0 +1,106 @@
+/* Sudoku Battle */
+.su .panel { padding: 16px 18px; }
+.su .panel h3 { margin: 0 0 12px; font-size: 0.8rem; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+.su .status { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; font-variant-numeric: tabular-nums; }
+
+/* Am PC: Brett links, daneben Spieler, Ziffernfeld und Regeln */
+.su-layout { display: grid; gap: 16px 24px; margin-top: 20px; align-items: start;
+  grid-template-columns: minmax(0, 520px) minmax(0, 1fr); grid-template-rows: auto auto 1fr;
+  grid-template-areas: "board rivals" "board pad" "board rules"; }
+.su-rivals { grid-area: rivals; }
+.su-grid { grid-area: board; }
+.su-pad { grid-area: pad; }
+.su-rules { grid-area: rules; }
+
+/* Spieler: Name, Leben, Stand und darunter der Fortschrittsbalken */
+.su-rivals { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.su-rival { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 7px 10px 8px; min-width: 0; }
+.su-rival.me { border-color: var(--accent); }
+.su-rival.out { opacity: 0.55; }
+.su-rival-head { display: flex; align-items: baseline; gap: 6px; }
+.su-name { flex: 1; min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.su-count { color: var(--muted); font-size: 0.8rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.su-rival.done .su-count { color: #5fc27e; font-weight: 700; }
+.su-bar { height: 5px; margin-top: 6px; border-radius: 999px; background: var(--surface-3); overflow: hidden; }
+.su-bar span { display: block; height: 100%; border-radius: 999px; background: var(--accent); transition: width 0.25s; }
+.su-rival.done .su-bar span { background: #5fc27e; }
+/* Herzen als Schriftzeichen (nicht als buntes Emoji), damit sie überall gleich schmal sind */
+.su-hearts { display: inline-flex; gap: 1px; color: var(--danger); font-size: 0.9rem; line-height: 1; font-variant-emoji: text; }
+.su-hearts .lost { color: var(--surface-3); }
+.su .status .su-hearts { font-size: 1.05rem; }
+
+/* Brett: so breit wie möglich, aber nie höher als das Fenster */
+.su-grid {
+  display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); grid-template-rows: repeat(9, minmax(0, 1fr));
+  width: min(100%, 520px, max(250px, calc(100dvh - 130px))); aspect-ratio: 1; margin: 0 auto;
+  border: 2px solid #8b93a3; border-radius: 6px; overflow: hidden; background: var(--surface);
+}
+.su-cell {
+  display: grid; place-items: center; min-width: 0; padding: 0; border: 0; border-radius: 0; cursor: pointer;
+  border-right: 1px solid rgba(255, 255, 255, 0.11); border-bottom: 1px solid rgba(255, 255, 255, 0.11);
+  background: transparent; color: var(--text); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums;
+  font-size: clamp(1.05rem, 5.4vw, 1.7rem);
+}
+.su-cell:nth-child(9n) { border-right: 0; }
+.su-cell:nth-child(n + 73) { border-bottom: 0; }
+.su-cell.br { border-right: 2px solid #8b93a3; }
+.su-cell.bb { border-bottom: 2px solid #8b93a3; }
+.su-cell:focus-visible { outline-offset: -3px; }
+.su-cell.ok { color: var(--accent); }
+.su-cell.bad { color: var(--danger); background: rgba(229, 87, 75, 0.2); animation: su-shake 0.3s; }
+.su-cell.peer { background: rgba(255, 255, 255, 0.055); }
+.su-cell.bad.peer { background: rgba(229, 87, 75, 0.2); }
+.su-cell.same { background: rgba(240, 180, 69, 0.26); }
+.su-cell.sel { background: rgba(240, 180, 69, 0.42); box-shadow: inset 0 0 0 2px var(--accent); }
+@keyframes su-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
+@media (prefers-reduced-motion: reduce) { .su-cell.bad { animation: none; } .su-bar span { transition: none; } }
+.su-notes {
+  display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr); place-items: center;
+  width: 100%; height: 100%; padding: 1px; color: var(--muted); font-weight: 600; font-size: clamp(0.5rem, 2.3vw, 0.72rem);
+}
+
+/* Ziffernfeld */
+.su-digits { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 6px; }
+.su-digits button, .su-tools button {
+  font-weight: 700; border-radius: 10px; border: 1px solid var(--border-strong); background: var(--surface-3); color: var(--text); cursor: pointer;
+}
+.su-digits button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; height: 54px; padding: 0; font-size: 1.3rem; line-height: 1; }
+.su-digits small { font-size: 0.62rem; font-weight: 600; color: var(--muted); }
+.su-digits button:disabled { opacity: 0.35; cursor: default; }
+.su-tools { display: flex; gap: 8px; margin-top: 8px; }
+.su-tools button { flex: 1; padding: 10px 8px; font-size: 0.9rem; }
+.su-tools button.on { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+@media (hover: hover) { .su-digits button:hover:not(:disabled), .su-tools button:hover { border-color: var(--accent); } }
+.su .msg { color: var(--accent); min-height: 1.5em; margin: 8px 0 0; font-size: 0.9rem; }
+.su-done { margin: 0; color: var(--muted); }
+.su-done b { color: var(--text); }
+
+.su-rules p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+.su-rules b { color: var(--text); }
+.su-end { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 14px; color: var(--muted); font-size: 0.9rem; }
+
+/* Rangliste am Ende */
+.su-rank { list-style: none; display: grid; gap: 8px; margin: 12px 0; padding: 0; text-align: left; }
+.su-rank li { display: flex; align-items: center; gap: 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; padding: 8px 12px; }
+.su-rank li.me { border-color: var(--accent); }
+.su-place { color: var(--muted); font-weight: 700; font-variant-numeric: tabular-nums; }
+.su-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.su-who b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.su-who small { color: var(--muted); font-size: 0.8rem; }
+.su-time { font-weight: 700; font-size: 1.1rem; font-variant-numeric: tabular-nums; }
+
+/* Schmale Fenster und Handy: alles untereinander (Spalte statt Raster, sonst bliebe das angedockte Ziffernfeld in seiner Zelle gefangen) */
+@media (max-width: 999px) {
+  .su-layout { display: flex; flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px; }
+}
+@media (max-width: 600px) {
+  .su .panel { padding: 10px 12px; }
+  /* Spieler in einer Zeile, damit das Brett auf den Bildschirm passt: zwei sind zu sehen, der dritte schaut hervor, der Rest lässt sich herschieben */
+  .su-rivals { display: flex; gap: 6px; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; margin: 0 -12px; padding: 0 12px; }
+  .su-rivals::-webkit-scrollbar { display: none; }
+  .su-rival { flex: 1 0 44%; padding: 5px 8px 6px; font-size: 0.85rem; }
+  .su-bar { margin-top: 4px; }
+  .su-digits { gap: 4px; }
+  .su-digits button { height: 50px; }
+  .su .msg { font-size: 0.82rem; margin-top: 6px; }
+}

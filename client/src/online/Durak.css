@@ -1,0 +1,51 @@
+/* Durak – Flächen, Sitze, Knöpfe und Karten kommen aus Schwimmen.css (.sw, .seat, .scard),
+   der verdeckte Stapel und der Fächer der eigenen Hand aus MauMau.css (.scard.back, .mm-hand, .fan) */
+
+/* Trumpfkarten erkennt man an der goldenen Tönung */
+.scard.dk-trump { background: #fff1c4; border-color: #e0bd5c; }
+
+/* Kartenzahl bei den Spielern: kleine Karte vor der Zahl */
+.dk-count::before { content: ""; display: inline-block; width: 8px; height: 11px; margin-right: 5px; border-radius: 2px; background: currentColor; vertical-align: -1px; }
+
+/* Oben auf dem Tisch: Stapel, Trumpfkarte, daneben Trumpffarbe und Zahlen */
+.dk-top { display: flex; align-items: center; gap: 10px 12px; }
+.scard.small.back span { min-width: 0; padding: 1px 6px; font-size: 0.85rem; }
+.scard.small.back::before { inset: 4px; }
+.dk-top .scard { flex: none; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4); }
+.dk-info { display: flex; flex-direction: column; gap: 6px; color: rgba(255, 255, 255, 0.85); font-size: 0.95rem; }
+.dk-info b { color: #fff; }
+
+/* Der Angriff: Jede Angriffskarte hat rechts unten Platz für die Karte, die sie schlägt.
+   Von der geschlagenen Karte bleibt der linke Rand sichtbar – dort stehen Wert und Farbe untereinander. */
+.dk-table { display: flex; flex-wrap: wrap; align-content: flex-start; gap: 10px 12px; min-height: 114px; margin-top: 14px; }
+.dk-pair { position: relative; padding: 0 24px 14px 0; }
+.dk-pair .dk-def { position: absolute; left: 24px; top: 14px; }
+.dk-asuit { position: absolute; top: 23px; left: 5px; width: 1.1em; text-align: center; font-size: 0.95rem; line-height: 1; }
+/* Kleiner Pfeil am linken Rand einer Handkarte: Mit ihr kann man den Angriff weiterschieben */
+.dk-shift { position: absolute; left: 4px; top: 44px; display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%;
+  background: var(--accent); color: var(--accent-ink); font-size: 0.8rem; font-weight: 800; line-height: 1; }
+.dk-table .scard.sel { transform: none; }
+.dk-table.last { opacity: 0.5; }
+.dk-note { margin: 6px 0 0; color: rgba(255, 255, 255, 0.75); font-size: 0.9rem; }
+.dk-table > .dk-note { margin: 0; align-self: center; }
+
+/* Handy hochkant: Alles über der eigenen Hand ist so flach wie möglich, damit der Tisch ohne Scrollen zu sehen ist */
+@media (max-width: 600px) {
+  /* Spieler: Name, Kartenzahl und Rolle in einer Zeile. Statt „(du)“ ist der eigene Name farbig – so bleibt mehr Platz für die Namen. */
+  .sw.dk .seat { flex-wrap: nowrap; gap: 0 4px; padding: 6px 8px; }
+  .sw.dk .seatname { flex: 1 1 auto; }
+  .sw.dk .seat.me .seatname { color: var(--accent); }
+  .sw.dk .tags { flex: none; flex-wrap: nowrap; gap: 4px; }
+  .sw.dk .tag { padding: 1px 6px; }
+  .dk-count::before { margin-right: 4px; }
+  /* Tisch: statt Überschrift, Stapel und Trumpfkarte nur eine Zeile mit Trumpf und Zahlen */
+  .sw.dk .felt h3, .sw.dk .dk-top .scard { display: none; }
+  .dk-info { flex-direction: row; flex-wrap: wrap; align-items: center; gap: 4px 14px; font-size: 0.88rem; }
+  /* Etwas kleinere Karten, damit drei Paare in eine Zeile passen */
+  .dk-table { gap: 8px 6px; min-height: 95px; margin-top: 10px; }
+  .dk-table .scard { width: 58px; height: 83px; }
+  .dk-table .scard .suit { font-size: 2.1rem; }
+  .dk-pair { padding: 0 22px 12px 0; }
+  .dk-pair .dk-def { left: 22px; top: 12px; }
+  .dk-note { font-size: 0.85rem; }
+}

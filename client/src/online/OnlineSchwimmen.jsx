@@ -2,13 +2,15 @@ import { useState, useEffect } from "react";
 import { SUITS, RANKS, LIVES, suit, rank, cardName, score, fmt, canRenew } from "../shared/schwimmen";
 import "./Schwimmen.css";
 
-function Card({ id, sel, small, onClick }) {
+// Spielkarte des Skatblatts (auch für Mau-Mau). className = zusätzliche Klassen, children = Zusätze auf der Karte.
+export function Card({ id, sel, small, className = "", onClick, children }) {
   const red = suit(id) >= 2;
   return (
-    <button className={"scard" + (red ? " red" : "") + (sel ? " sel" : "") + (small ? " small" : "")}
+    <button className={"scard" + (red ? " red" : "") + (sel ? " sel" : "") + (small ? " small" : "") + (className && " " + className)}
       disabled={!onClick} onClick={onClick} aria-label={cardName(id)} aria-pressed={onClick ? !!sel : undefined}>
       {["tl", "tr", "bl", "br"].map((c) => <span key={c} className={"corner " + c} aria-hidden="true">{RANKS[rank(id)]}</span>)}
       <span className="suit" aria-hidden="true">{SUITS[suit(id)]}</span>
+      {children}
     </button>
   );
 }
@@ -31,6 +33,7 @@ export function Lives({ lives }) {
 export default function OnlineSchwimmen({ room, me, socket, onLeave }) {
   const s = room.state;
   const mine = me.index;
+  const tv = !!me.tv; // Fernseher: zeigt nur den Tisch, keine Hand
   const playing = s.stage === "play";
   const myTurn = playing && s.cur === mine;
   const [sel, setSel] = useState(null); // { from: "hand" | "middle", id }
@@ -50,7 +53,7 @@ export default function OnlineSchwimmen({ room, me, socket, onLeave }) {
     : playing ? `${who.name} ist dran …` : "");
 
   return (
-    <main className="sw">
+    <main className={"sw" + (tv ? " tv" : "")}>
       <header>
         <button className="ghost" style={{ margin: 0 }} onClick={onLeave}>← Verlassen</button>
         <h1>Schwimmen · {room.code}</h1>
@@ -81,7 +84,7 @@ export default function OnlineSchwimmen({ room, me, socket, onLeave }) {
       </section>
 
       {/* dock: Auf dem Handy kleben die eigenen Karten samt Knöpfen am unteren Bildschirmrand (index.css) */}
-      <section className="panel dock">
+      {!tv && <section className="panel dock">
         <h3>Deine Karten {!out && <span className="points">· {fmt(score(s.hand))} Punkte</span>}</h3>
         {out ? <p className="muted">Du bist untergegangen 🫧 – schau den anderen beim Schwimmen zu.</p> : (
           <div className="row-cards">
@@ -97,15 +100,15 @@ export default function OnlineSchwimmen({ room, me, socket, onLeave }) {
           </div>
         )}
         <p className="msg">{hint}</p>
-      </section>
+      </section>}
 
-      <section className="panel rules">
+      {!tv && <section className="panel rules">
         <h3>Regeln</h3>
         <p>Gezählt wird die höchste Summe <b>einer Farbe</b>: Ass 11, Bild und Zehn 10, sonst der Zahlenwert. Drei gleiche Werte zählen 30,5, drei Asse (<b>Feuer</b>) 33.
           Wer dran ist, tauscht eine Karte mit der Mitte, tauscht alle drei, schiebt oder macht zu. Nach dem Zumachen ist jeder noch einmal dran. Liegen 7, 8 und 9 in der Mitte, darf man sie gegen drei neue Karten tauschen lassen und ist dann weiter dran. Haben alle hintereinander geschoben, kommen automatisch neue Karten in die Mitte.
           Wer 31 oder Feuer hat, deckt sofort auf. Wer am wenigsten hat, verliert ein Leben (bei Gleichstand alle) – bei Feuer verlieren alle anderen.
           Nach {LIVES} Leben <b>schwimmt</b> man, beim nächsten Verlust geht man unter. Wer zuletzt übrig ist, gewinnt.</p>
-      </section>
+      </section>}
 
       {!playing && s.result && (
         <div className="overlay"><div className="card sw-result">
@@ -132,8 +135,9 @@ export default function OnlineSchwimmen({ room, me, socket, onLeave }) {
             ))}
           </div>
           {s.result.rescued && <p>Alle wären gleichzeitig untergegangen – deshalb geht keiner unter.</p>}
-          {s.stage === "between" && <div className="opts"><button className="wide on" onClick={() => act({ type: "next" })}>Nächste Runde</button></div>}
-          {s.stage === "over" && (me.index === 0
+          {s.stage === "between" && (tv ? <p>Die nächste Runde startet ihr am Handy.</p>
+            : <div className="opts"><button className="wide on" onClick={() => act({ type: "next" })}>Nächste Runde</button></div>)}
+          {s.stage === "over" && (me.host
             ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>
             : <p>Warte auf den Host …</p>)}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>

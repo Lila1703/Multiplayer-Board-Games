@@ -47,7 +47,7 @@ export function viewSternbilder(s, pi) {
   });
   return {
     ...s, deck: undefined, deckCount: s.deck.length,
-    hands: s.hands.map((h, i) => h.map((k) => mask(k, i === pi))),
+    hands: s.hands.map((h, i) => h.map((k) => mask(k, i === pi || pi < 0))), // pi = -1: der Fernseher sieht keine Karte
     log: forget ? s.log.slice(0, s.names.length) : s.log,
   };
 }

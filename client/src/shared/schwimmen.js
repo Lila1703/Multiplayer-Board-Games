@@ -8,7 +8,10 @@ export const LIVES = 3; // danach schwimmt man (lives = 0), beim nächsten Verlu
 export const suit = (id) => Math.floor(id / 8);
 export const rank = (id) => id % 8;
 const value = (id) => (rank(id) === 7 ? 11 : rank(id) >= 3 ? 10 : rank(id) + 7);
-export const cardName = (id) => `${SUIT_NAMES[suit(id)]} ${RANKS[rank(id)]}`;
+// Im Text ausgeschrieben („Pik Ass“), auf der Karte selbst steht weiter das Kürzel. Auch für Mau-Mau und Durak.
+const RANK_WORDS = { B: "Bube", D: "Dame", K: "König", A: "Ass" };
+export const rankName = (r) => RANK_WORDS[r] ?? r;
+export const cardName = (id) => `${SUIT_NAMES[suit(id)]} ${rankName(RANKS[rank(id)])}`;
 
 // Punkte einer Hand: höchste Summe einer Farbe; drei gleiche Werte = 30,5; drei Asse ("Feuer") = 33
 export function score(hand) {
@@ -19,7 +22,7 @@ export function score(hand) {
 export const canRenew = (middle) => [...middle].map(rank).sort().join() === "0,1,2";
 export const fmt = (p) => String(p).replace(".", ",");
 
-const shuffle = (a) => {
+export const shuffle = (a) => {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 };

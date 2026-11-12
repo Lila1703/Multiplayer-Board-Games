@@ -69,8 +69,9 @@ function Know({ k, memory }) {
   );
 }
 
-// Hand eines Mitspielers: offen, in der Reihenfolge, in die er sie sortiert hat. pick = die Karte, die er gerade ausgewählt hat
-function OtherHand({ cards, memory, pick }) {
+// Hand eines Mitspielers: offen, in der Reihenfolge, in die er sie sortiert hat. pick = die Karte, die er gerade ausgewählt hat.
+// Auf dem Fernseher sind die Karten verdeckt und zeigen nur, was der Besitzer weiß – das steht dann schon auf der Karte (know = false).
+function OtherHand({ cards, memory, pick, know = true }) {
   const box = useRef(null);
   useFlip(box);
   return (
@@ -78,7 +79,7 @@ function OtherHand({ cards, memory, pick }) {
       {cards.map((k) => (
         <div className="slotwrap" key={k.u} data-u={k.u}>
           <Card k={k} hot={k.hot > 0} shown={pick === k.u} />
-          {(!memory || k.hot > 0) && <Know k={k} memory={memory} />}
+          {know && (!memory || k.hot > 0) && <Know k={k} memory={memory} />}
         </div>
       ))}
     </div>
@@ -188,9 +189,12 @@ function Tokens({ hints, clouds }) {
   );
 }
 
+const NONE = []; // Hand des Fernsehers (immer dasselbe Array)
+
 export default function OnlineSternbilder({ room, me, socket, onLeave }) {
   const s = room.state;
   const mine = me.index;
+  const tv = !!me.tv; // Fernseher: zeigt alle Hände verdeckt (nur mit den Hinweisen), sonst sähe jeder seine eigenen Karten
   const [err, setErr] = useState("");
   const [sel, setSel] = useState(s.picks?.[mine] ?? null); // gewählte eigene Karte (Zieh-Nummer) – die sehen auch die Mitspieler
   const [target, setTarget] = useState(null); // Mitspieler für einen Hinweis
@@ -201,12 +205,12 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
   const myTurn = s.cur === mine && playing;
   const who = room.players[s.cur];
   const n = s.names.length;
-  // Mitspieler in Zugreihenfolge ab mir
-  const others = Array.from({ length: n - 1 }, (_, i) => (mine + 1 + i) % n);
+  // Mitspieler in Zugreihenfolge ab mir – auf dem Fernseher alle
+  const others = tv ? s.names.map((_, i) => i) : Array.from({ length: n - 1 }, (_, i) => (mine + 1 + i) % n);
   const tgt = target ?? others[0];
 
   // Eigene Karten: Die gerade selbst gezogene Reihenfolge gilt sofort, der Server zieht nach
-  const dealt = s.hands[mine];
+  const dealt = s.hands[mine] || NONE;
   const myCards = local && local.length === dealt.length && local.every((u) => dealt.some((k) => k.u === u))
     ? local.map((u) => dealt.find((k) => k.u === u)) : dealt;
   const selIdx = playing ? myCards.findIndex((k) => k.u === sel) : -1;
@@ -244,7 +248,7 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
   const total = finalScore(s);
 
   return (
-    <main className="sb">
+    <main className={"sb" + (tv ? " tv" : "")}>
       <header>
         <button className="ghost" style={{ margin: 0 }} onClick={onLeave}>← Verlassen</button>
         <h1>Sternbilder · {room.code}</h1>
@@ -270,13 +274,13 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
         </section>
 
         <section className="panel">
-          <h3>Mitspieler</h3>
+          <h3>{tv ? "Spieler – jeder sieht am Handy die Karten der anderen" : "Mitspieler"}</h3>
           <div className="hands">
             {others.map((p) => (
               <div key={p} className={"ohand" + (p === s.cur ? " active" : "") + (myTurn && tgt === p ? " target" : "") + (myTurn ? " pickable" : "")}
                 onClick={myTurn ? () => setTarget(p) : undefined}>
                 <div className="oname">{room.players[p].name}{room.players[p].connected ? "" : " – offline"}{p === s.cur ? " · ist dran" : ""}</div>
-                <OtherHand cards={s.hands[p]} memory={s.memory && playing} pick={playing ? s.picks?.[p] : null} />
+                <OtherHand cards={s.hands[p]} memory={s.memory && playing} pick={playing ? s.picks?.[p] : null} know={!tv} />
               </div>
             ))}
           </div>
@@ -302,7 +306,7 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
         </section>
 
         {/* dock: Auf dem Handy kleben die eigenen Karten am unteren Bildschirmrand (index.css) */}
-        <section className="panel sb-mine dock">
+        {!tv && <section className="panel sb-mine dock">
           <h3>Deine Karten{!playing ? " (aufgedeckt)" : s.memory ? " – Hinweise musst du dir merken" : " – du siehst nur, was dir verraten wurde"}</h3>
           <MyHand cards={myCards} sel={selIdx >= 0 ? sel : null} sortable={playing} onTap={tap} onReorder={reorder} />
           {freshHint && <p className="fresh">✦ Frischer Hinweis – präg ihn dir ein oder sortiere deine Karten um. Nach deinem nächsten Zug ist er nicht mehr zu sehen.</p>}
@@ -319,7 +323,7 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
           )}
           {playing && <p className="note sort-note">Karten ziehen zum Sortieren (oder antippen und ◀ ▶) – deine Mitspieler sehen die Reihenfolge. Eine angetippte Karte steht auch bei ihnen ein Stück höher: So kannst du zeigen, welche du meinst.</p>}
           <p className="msg">{hint}</p>
-        </section>
+        </section>}
       </div>
 
       <aside className="sb-side">
@@ -339,7 +343,7 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
             <ol className="log">{s.log.map((t, i) => <li key={s.turn - i}>{t}</li>)}</ol>
           )}
         </section>
-        <section className="panel rules">
+        {!tv && <section className="panel rules">
           <h3>Regeln</h3>
           <p>Ihr spielt <b>gemeinsam</b>. Jeder sieht die Karten aller anderen – nur die eigenen nicht.
             Ziel: alle fünf Sternbilder der Reihe nach von <b>1 bis 5</b> auslegen.</p>
@@ -351,7 +355,7 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
           <p>Pro Farbe gibt es 3× die 1, je 2× die 2–4 und nur 1× die 5.</p>
           <p><b>Sortieren und zeigen</b>: Deine Karten darfst du jederzeit umsortieren, auch wenn du nicht dran bist. Neue Karten kommen links dazu. Tippst du eine Karte an, sehen alle, welche du meinst.</p>
           {s.memory && <p><b>Gedächtnis-Modus</b>: Ein Hinweis bleibt nur sichtbar, bis du das nächste Mal am Zug warst. Danach musst du ihn dir merken – oder dir mit der Reihenfolge deiner Karten helfen.</p>}
-        </section>
+        </section>}
       </aside></div>
 
       {s.stage === "over" && (
@@ -362,7 +366,7 @@ export default function OnlineSternbilder({ room, me, socket, onLeave }) {
           <div className="piles small">
             {COLORS.map((c, i) => <div key={c} className={"pile " + COL[i]}><b>{s.piles[i]}</b><small>{c}</small></div>)}
           </div>
-          {me.index === 0
+          {me.host
             ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>
             : <p>Warte auf den Host …</p>}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>

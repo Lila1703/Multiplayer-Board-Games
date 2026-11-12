@@ -40,12 +40,13 @@ function TrumpBadge({ s }) {
 export default function OnlineZauberstich({ room, me, socket, onLeave }) {
   const s = room.state;
   const mine = me.index;
+  const tv = !!me.tv; // Fernseher: zeigt nur den Tisch, keine Hand
   const [err, setErr] = useState("");
   useEffect(() => setErr(""), [s.cur, s.stage, s.round]);
   const act = (a) => socket.emit("w:act", a, (res) => setErr(res?.error || ""));
   const myTurn = s.cur === mine && ["trump", "bid", "play"].includes(s.stage);
   const who = room.players[s.cur];
-  const hand = [...s.hand].sort((a, b) => sortKey(a) - sortKey(b));
+  const hand = [...(s.hand || [])].sort((a, b) => sortKey(a) - sortKey(b));
   const bidSum = s.bids.reduce((a, b) => a + (b ?? 0), 0);
   const led = leadColor(s.trick);
   const forbidden = forbiddenBid(s);
@@ -60,7 +61,7 @@ export default function OnlineZauberstich({ room, me, socket, onLeave }) {
   }
 
   return (
-    <main className="sr">
+    <main className={"sr" + (tv ? " tv" : "")}>
       <header>
         <button className="ghost" style={{ margin: 0 }} onClick={onLeave}>← Verlassen</button>
         <h1>Zauberstich · {room.code}</h1>
@@ -108,9 +109,10 @@ export default function OnlineZauberstich({ room, me, socket, onLeave }) {
           </div>
           </div>
           <p className="msg">{s.stage === "show" ? "" : s.msg}</p>
+          {tv && <p className="msg">{hint}</p>}
         </section>
 
-        <section className="panel">
+        {!tv && <section className="panel">
           <h3>Deine Karten</h3>
           <div className="hand">
             {hand.map((id) => {
@@ -130,7 +132,7 @@ export default function OnlineZauberstich({ room, me, socket, onLeave }) {
             </div>
           )}
           <p className="msg">{hint}</p>
-        </section>
+        </section>}
       </div>
 
       <aside className="sr-side">
@@ -148,14 +150,14 @@ export default function OnlineZauberstich({ room, me, socket, onLeave }) {
             </table></div>
           )}
         </section>
-        <section className="panel rules">
+        {!tv && <section className="panel rules">
           <h3>Regeln</h3>
           <p>In Runde 1 hat jeder 1 Karte, in Runde 2 zwei usw. Die nächste Karte vom Stapel bestimmt den <b>Trumpf</b> (bei einem Zauberhut wählt der Geber, bei einer Niete gibt es keinen).
             Vor dem Spielen sagt jeder an, wie viele Stiche er macht. Die ausgespielte Farbe muss bedient werden.
             {s.noEven ? " Die Ansagen dürfen nicht aufgehen: Wer zuletzt ansagt, darf nicht so ansagen, dass die Summe genau der Stichzahl entspricht." : " Die Ansagen sind frei."}</p>
           <p><b><Hat /> Zauberhut</b> gewinnt immer (der erste gespielte). <b>Niete</b> verliert immer. Beide darf man jederzeit spielen.</p>
           <p>Ansage genau getroffen: <b>20 + 10 pro Stich</b>. Daneben: <b>−10 pro Stich</b> Abweichung.</p>
-        </section>
+        </section>}
       </aside></div>
 
       {(s.stage === "between" || s.stage === "over") && (
@@ -171,8 +173,9 @@ export default function OnlineZauberstich({ room, me, socket, onLeave }) {
               </div>
             ))}
           </div>
-          {s.stage === "between" && <div className="opts"><button className="wide on" onClick={() => act({ type: "next" })}>Runde {s.round + 1} starten</button></div>}
-          {s.stage === "over" && (me.index === 0
+          {s.stage === "between" && (tv ? <p>Die nächste Runde startet ihr am Handy.</p>
+            : <div className="opts"><button className="wide on" onClick={() => act({ type: "next" })}>Runde {s.round + 1} starten</button></div>)}
+          {s.stage === "over" && (me.host
             ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>
             : <p>Warte auf den Host …</p>)}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>

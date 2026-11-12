@@ -1,8 +1,9 @@
 import { useState } from "react";
 
-export default function PlayerSetup({ title, min = 1, max = 4, onStart, onBack }) {
+// Spielerzahl wählen und Namen eintragen. colors (optional) = Farbe je Platz, wird als Streifen am Eingabefeld gezeigt.
+export default function PlayerSetup({ title, min = 1, max = 4, colors, onStart, onBack }) {
   const [count, setCount] = useState(Math.max(min, 2));
-  const [names, setNames] = useState(["Spieler 1", "Spieler 2", "Spieler 3", "Spieler 4"]);
+  const [names, setNames] = useState(() => Array.from({ length: Math.max(max, 4) }, (_, i) => `Spieler ${i + 1}`));
   const counts = Array.from({ length: max - min + 1 }, (_, i) => min + i);
   const start = (e) => {
     e.preventDefault();
@@ -20,6 +21,7 @@ export default function PlayerSetup({ title, min = 1, max = 4, onStart, onBack }
       <div className="names">
         {names.slice(0, count).map((name, i) => (
           <input key={i} value={name} maxLength={16} aria-label={`Name von Spieler ${i + 1}`}
+            style={colors ? { borderLeft: `8px solid ${colors[i]}` } : undefined}
             onFocus={(e) => e.target.select()}
             onChange={(e) => setNames(names.map((n, k) => (k === i ? e.target.value : n)))} />
         ))}

@@ -10,10 +10,24 @@ import { createPhase10, act as p10act, viewP10 } from "../client/src/shared/phas
 import { createSchwimmen, act as swAct, viewSchwimmen } from "../client/src/shared/schwimmen.js";
 import { createZauberstich, act as srAct, collect as srCollect, viewZauberstich } from "../client/src/shared/zauberstich.js";
 import { createSternbilder, act as sbAct, viewSternbilder } from "../client/src/shared/sternbilder.js";
+import { createSudoku, act as suAct, viewSudoku } from "../client/src/shared/sudoku.js";
+import { createMauMau, act as mmAct, viewMauMau } from "../client/src/shared/maumau.js";
+import { createDurak, act as dkAct, viewDurak } from "../client/src/shared/durak.js";
 
-const VIEWS = { phase10: viewP10, schwimmen: viewSchwimmen, zauberstich: viewZauberstich, sternbilder: viewSternbilder };
-const GAMES = ["ludo", "kniffel", "phase10", "schwimmen", "zauberstich", "sternbilder"];
-const MAX_PLAYERS = { ludo: 4, kniffel: 10, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5 };
+const VIEWS = { phase10: viewP10, schwimmen: viewSchwimmen, zauberstich: viewZauberstich, sternbilder: viewSternbilder, sudoku: viewSudoku, maumau: viewMauMau, durak: viewDurak };
+const GAMES = ["ludo", "kniffel", "phase10", "schwimmen", "zauberstich", "sternbilder", "sudoku", "maumau", "durak"];
+const MAX_PLAYERS = { ludo: 4, kniffel: 10, phase10: 6, schwimmen: 8, zauberstich: 6, sternbilder: 5, sudoku: 8, maumau: 5, durak: 6 };
+// Fernseher-Modus: Diese Spiele zeigen auf dem Fernseher nichts, was nicht ohnehin jeder am Handy sieht (muss zu noTv in catalog.js passen)
+const NO_TV = ["ludo", "sudoku"];
+// Host: der erste Spieler, der noch da ist – im Fernseher-Modus zusätzlich der Fernseher selbst.
+// Ist der erste offline oder hat die laufende Partie verlassen, übernimmt der nächste – sonst käme niemand mehr zurück in die Lobby.
+const hostIndex = (r) => {
+  const i = r.players.findIndex((p) => !p.left && p.connected);
+  return i >= 0 ? i : r.players.findIndex((p) => !p.left);
+};
+const isHost = (r, p) => !!p && (p === r.tv || (r.players.includes(p) && r.players.indexOf(p) === hostIndex(r)));
+const empty = (r) => r.players.every((p) => !p.connected) && !r.tv?.connected;
+const reap = (r) => { if (empty(r)) setTimeout(() => { if (empty(r)) rooms.delete(r.code); }, 3600000); };
 
 const dist = path.join(path.dirname(fileURLToPath(import.meta.url)), "../client/dist");
 const app = express();
@@ -30,18 +44,43 @@ const newCode = () => {
   return c;
 };
 const push = (r) => {
-  const base = { code: r.code, game: r.game, players: r.players.map((p) => ({ name: p.name, connected: p.connected })) };
+  const base = { code: r.code, game: r.game, tv: !!r.tv, host: hostIndex(r), players: r.players.map((p) => ({ name: p.name, connected: !!p.connected })) };
   const view = VIEWS[r.game];
-  if (view && r.state) {
-    // Jeder bekommt nur seine eigene Hand zu sehen
-    r.players.forEach((p, i) => p.sid && io.to(p.sid).emit("room", { ...base, state: view(r.state, i) }));
-  } else io.to(r.code).emit("room", { ...base, state: r.state });
+  // Jeder bekommt nur seine eigene Hand zu sehen, der Fernseher (Index -1) gar keine.
+  // „you“ ist der eigene Platz – der verschiebt sich, wenn jemand vor einem den Raum verlässt.
+  const state = (i) => (view && r.state ? view(r.state, i) : r.state);
+  r.players.forEach((p, i) => p.sid && io.to(p.sid).emit("room", { ...base, you: i, state: state(i) }));
+  if (r.tv?.sid) io.to(r.tv.sid).emit("room", { ...base, you: -1, state: state(-1) });
+};
+// Nimmt den Socket eines Spielers aus dem Raum (beim Kicken: der Socket gehört zu einer anderen Verbindung)
+const detach = (r, p) => {
+  const s = p.sid && io.sockets.sockets.get(p.sid);
+  if (s) { s.leave(r.code); s.data.reset?.(); }
+  p.sid = null; p.connected = false;
 };
 
 io.on("connection", (socket) => {
   let room = null, me = null;
+  socket.data.reset = () => { room = null; me = null; };
+  // Der Fernseher schaut nur zu: Spielzüge von ihm werden verworfen (Lobby-Befehle darf er als Host schicken)
+  socket.use((packet, next) => {
+    if (me && room && me === room.tv && !["create", "join", "start", "lobby", "game", "kick", "leave"].includes(packet[0])) {
+      const ack = packet[packet.length - 1];
+      if (typeof ack === "function") ack({ error: "Der Fernseher spielt nicht mit." });
+      return;
+    }
+    next();
+  });
 
   function join(r, name, token, ack) {
+    // Der Fernseher meldet sich mit seinem Token wieder an
+    if (token && r.tv?.token === token) {
+      r.tv.connected = true; r.tv.sid = socket.id;
+      room = r; me = r.tv; socket.join(r.code);
+      ack({ code: r.code, token, index: -1, tv: true });
+      return push(r);
+    }
+    if (token && r.kicked?.has(token)) return ack({ error: "Der Host hat dich aus dem Raum entfernt.", kicked: true });
     let p = token && r.players.find((x) => x.token === token);
     if (!p) {
       if (r.state) return ack({ error: "Das Spiel läuft schon." });
@@ -49,16 +88,22 @@ io.on("connection", (socket) => {
       p = { token: randomBytes(8).toString("hex"), name: (name || "").trim().slice(0, 16) || `Spieler ${r.players.length + 1}` };
       r.players.push(p);
     }
-    p.connected = true; p.sid = socket.id;
+    p.connected = true; p.sid = socket.id; p.left = false;
     room = r; me = p; socket.join(r.code);
     ack({ code: r.code, token: p.token, index: r.players.indexOf(p) });
     push(r);
   }
 
-  socket.on("create", ({ name, game }, ack) => {
-    const r = { code: newCode(), game: GAMES.includes(game) ? game : "ludo", players: [], state: null };
+  socket.on("create", ({ name, game, tv }, ack) => {
+    const r = { code: newCode(), game: GAMES.includes(game) ? game : "ludo", players: [], state: null, tv: null };
     rooms.set(r.code, r);
-    join(r, name, null, ack);
+    if (!tv) return join(r, name, null, ack);
+    // Fernseher-Modus: Wer den Raum erstellt, spielt nicht mit, sondern zeigt den Tisch
+    if (NO_TV.includes(r.game)) r.game = GAMES.find((g) => !NO_TV.includes(g));
+    r.tv = { token: randomBytes(8).toString("hex"), sid: socket.id, connected: true };
+    room = r; me = r.tv; socket.join(r.code);
+    ack({ code: r.code, token: r.tv.token, index: -1, tv: true });
+    push(r);
   });
   socket.on("join", ({ code, name, token }, ack) => {
     const r = rooms.get(String(code || "").toUpperCase());
@@ -66,23 +111,50 @@ io.on("connection", (socket) => {
     join(r, name, token, ack);
   });
   socket.on("start", (opts) => {
-    if (!room || room.players[0] !== me || room.players.length < 2) return;
-    if (opts && typeof opts === "object") room.opts = { scoring: !!opts.scoring, noEven: opts.noEven !== false, memory: !!opts.memory }; // beim "Nochmal spielen" bleibt die letzte Wahl
+    if (!room || !isHost(room, me) || room.players.length < 2) return;
+    if (opts && typeof opts === "object") room.opts = { scoring: !!opts.scoring, noEven: opts.noEven !== false, memory: !!opts.memory,
+      difficulty: ["leicht", "mittel", "schwer"].includes(opts.difficulty) ? opts.difficulty : "mittel" }; // beim "Nochmal spielen" bleibt die letzte Wahl
     const names = room.players.map((p) => p.name);
     room.state = room.game === "kniffel" ? createKniffel(names) : room.game === "phase10" ? createPhase10(names, room.opts)
       : room.game === "schwimmen" ? createSchwimmen(names)
       : room.game === "zauberstich" ? createZauberstich(names, room.opts)
-      : room.game === "sternbilder" ? createSternbilder(names, room.opts) : createGame(names);
+      : room.game === "sternbilder" ? createSternbilder(names, room.opts)
+      : room.game === "sudoku" ? createSudoku(names, room.opts, Date.now())
+      : room.game === "maumau" ? createMauMau(names)
+      : room.game === "durak" ? createDurak(names) : createGame(names);
     push(room);
   });
   // Alle zurück in die Lobby desselben Raums, dort wählt der Host das nächste Spiel.
   // Geht nach Spielende und auch mittendrin – dann bricht der Host die laufende Partie für alle ab.
   socket.on("lobby", () => {
-    if (!room || room.players[0] !== me) return;
-    room.state = null; push(room);
+    if (!room || !isHost(room, me)) return;
+    // Wer die Partie über „Verlassen“ aufgegeben hat, ist in der Lobby nicht mehr dabei
+    room.state = null; room.players = room.players.filter((p) => !p.left); push(room);
+  });
+  // Der Host wirft in der Lobby jemanden raus, z. B. wen, der gegangen ist und nicht wiederkommt
+  socket.on("kick", (i) => {
+    const r = room, p = Number.isInteger(i) && r?.players[i];
+    if (!p || !isHost(r, me) || r.state || p === me) return;
+    (r.kicked ||= new Set()).add(p.token); // sein Handy soll sich nicht von selbst wieder anmelden
+    if (p.sid) io.to(p.sid).emit("kicked");
+    detach(r, p);
+    r.players.splice(i, 1);
+    push(r); reap(r);
+  });
+  // Bewusst gegangen (Zurück / Verlassen): In der Lobby ist man sofort raus, in einer laufenden Partie beim nächsten „Zurück zur Lobby“
+  socket.on("leave", () => {
+    const r = room, p = me;
+    if (!r || !p) return;
+    detach(r, p);
+    if (p !== r.tv) {
+      if (r.state) p.left = true;
+      else r.players.splice(r.players.indexOf(p), 1);
+    }
+    push(r); reap(r);
   });
   socket.on("game", (game) => {
-    if (!room || room.players[0] !== me || room.state || !GAMES.includes(game) || room.players.length > MAX_PLAYERS[game]) return;
+    if (!room || !isHost(room, me) || room.state || !GAMES.includes(game) || room.players.length > MAX_PLAYERS[game]) return;
+    if (room.tv && NO_TV.includes(game)) return;
     room.game = game; room.opts = undefined; push(room);
   });
   socket.on("roll", () => {
@@ -151,13 +223,33 @@ io.on("connection", (socket) => {
     if (res.error) return ack?.({ error: res.error });
     r.state = res.state; push(r); ack?.({});
   });
+  // Sudoku Battle: alle spielen gleichzeitig, die Zeit misst der Server
+  socket.on("su:act", (a, ack) => {
+    const r = room;
+    if (r?.game !== "sudoku" || !r.state || !a) return ack?.({ error: "Kein Sudoku-Spiel." });
+    const res = suAct(r.state, r.players.indexOf(me), a, Date.now());
+    if (res.error) return ack?.({ error: res.error });
+    r.state = res.state; push(r); ack?.({ wrong: !!res.wrong });
+  });
+  socket.on("mm:act", (a, ack) => {
+    const r = room;
+    if (r?.game !== "maumau" || !r.state || !a) return ack?.({ error: "Kein Mau-Mau-Spiel." });
+    const res = mmAct(r.state, r.players.indexOf(me), a);
+    if (res.error) return ack?.({ error: res.error });
+    r.state = res.state; push(r); ack?.({});
+  });
+  socket.on("dk:act", (a, ack) => {
+    const r = room;
+    if (r?.game !== "durak" || !r.state || !a) return ack?.({ error: "Kein Durak-Spiel." });
+    const res = dkAct(r.state, r.players.indexOf(me), a);
+    if (res.error) return ack?.({ error: res.error });
+    r.state = res.state; push(r); ack?.({});
+  });
   socket.on("disconnect", () => {
     const r = room;
-    if (!r || me.sid !== socket.id) return;
+    if (!r || !me || me.sid !== socket.id) return;
     me.connected = false;
-    push(r);
-    if (r.players.every((p) => !p.connected))
-      setTimeout(() => { if (r.players.every((p) => !p.connected)) rooms.delete(r.code); }, 3600000);
+    push(r); reap(r);
   });
 });
 

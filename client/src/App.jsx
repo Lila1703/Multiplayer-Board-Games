@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import Kniffel from "./games/kniffel/Kniffel";
 import Ludo from "./games/ludo/Ludo";
 import Online from "./online/Online";
 import GameTile from "./components/GameTile";
-import { GAMES } from "./games/catalog";
+import { GAMES, ONLINE_GAMES } from "./games/catalog";
 import "./App.css";
+
+// Das Eroberungsspiel bringt eine große Weltkarte mit – sie wird erst geladen, wenn jemand das Spiel öffnet
+const Eroberung = lazy(() => import("./games/eroberung/Eroberung"));
 
 // Neues lokales Spiel hinzufügen: Komponente bauen und hier eintragen (Name, Kurztext und Motiv kommen aus games/catalog.js)
 const LOCAL_GAMES = [
   { id: "ludo", min: 2, Component: Ludo },
   { id: "kniffel", min: 1, Component: Kniffel },
+  { id: "eroberung", min: 2, Component: Eroberung },
 ].map((local) => {
   const g = GAMES.find((x) => x.id === local.id);
   return { ...g, ...local, players: `${local.min}–${g.max} Spieler` };
@@ -20,7 +24,7 @@ const list = (names) => (names.length > 1 ? names.slice(0, -1).join(", ") + " od
 
 const MODES = [
   { id: "local", name: "Lokal spielen", players: "Alle an einem Gerät", desc: list(LOCAL_GAMES.map((g) => g.name)) + ", abwechselnd am selben Bildschirm." },
-  { id: "online", name: "Online spielen", players: `2–${Math.max(...GAMES.map((g) => g.max))} Spieler, jeder am eigenen Gerät`, desc: list(GAMES.map((g) => g.name)) + " per Einladungslink." },
+  { id: "online", name: "Online spielen", players: `2–${Math.max(...ONLINE_GAMES.map((g) => g.max))} Spieler, jeder am eigenen Gerät`, desc: list(ONLINE_GAMES.map((g) => g.name)) + " per Einladungslink." },
 ];
 
 export default function App() {
@@ -30,7 +34,7 @@ export default function App() {
 
   if (view === "online") return <Online onBack={() => setView(null)} />;
   const game = LOCAL_GAMES.find((g) => g.id === gameId);
-  if (view === "local" && game) return <game.Component onBack={() => setGameId(null)} />;
+  if (view === "local" && game) return <Suspense fallback={<main><p className="hint">Lädt …</p></main>}><game.Component onBack={() => setGameId(null)} /></Suspense>;
 
   if (view === "local") {
     return (

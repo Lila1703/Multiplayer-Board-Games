@@ -1,0 +1,39 @@
+/* Mau-Mau – Flächen, Sitze, Knöpfe und Karten kommen aus Schwimmen.css (Klassen .sw, .seat, .scard) */
+
+/* Mitte: Stapel zum Ziehen, oberste Karte, daneben Wunschfarbe und offene Sieben */
+.mm-piles { display: flex; align-items: center; gap: 12px 14px; flex-wrap: wrap; }
+.scard.back { display: grid; place-items: center; background: #b8342b; border: 3px solid #fff; color: #fff; }
+.scard.back::before { content: ""; position: absolute; inset: 6px; border: 1.5px solid rgba(255, 255, 255, 0.5); border-radius: 4px; }
+.scard.back span { position: relative; min-width: 2em; padding: 2px 6px; border-radius: 999px; background: rgba(0, 0, 0, 0.35); font-weight: 800; font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.scard.back:not(:disabled) { box-shadow: 0 0 0 3px var(--accent), 0 4px 10px rgba(0, 0, 0, 0.45); }
+.mm-info { display: grid; gap: 8px; color: rgba(255, 255, 255, 0.85); font-size: 0.95rem; }
+.mm-info b { color: #fff; }
+.mm-suit { display: inline-block; padding: 1px 10px; border-radius: 999px; background: #fff; color: #1a1c20; font-weight: 700; white-space: nowrap; }
+.mm-suit.red { color: #c62f26; }
+
+/* Eigene Hand als Fächer: Jede Karte bekommt eine Spalte, die bis auf 22px schrumpfen darf – die Karte ragt dann unter die nächste.
+   Erst wenn auch das nicht reicht, lässt sich die Hand zur Seite schieben. Oben bleibt Platz für die angehobenen Karten. */
+.mm-hand {
+  display: grid; grid-template-columns: repeat(var(--n), minmax(22px, 80px)) 70px; justify-content: start; align-items: end;
+  min-height: 118px; padding: 16px 2px 2px; overflow-x: auto; overscroll-behavior-x: contain;
+}
+/* Im Fächer sieht man nur die linke obere Ecke – deshalb steht die Farbe dort unter dem Wert */
+.scard.fan { box-shadow: -2px 0 6px rgba(0, 0, 0, 0.35), 0 4px 10px rgba(0, 0, 0, 0.45); }
+.scard.fan .fsuit { position: absolute; top: 23px; left: 5px; width: 1.1em; text-align: center; font-size: 0.95rem; line-height: 1; }
+.scard.fan.can { transform: translateY(-12px); }
+@media (hover: hover) { .scard.fan.can:hover:not(:disabled) { transform: translateY(-16px); } }
+.scard.fan.cant { filter: brightness(0.62); }
+.scard.fan.new { outline: 3px solid var(--accent); outline-offset: -3px; }
+
+/* Farbwahl nach dem Buben */
+.mm-wish { display: grid; grid-template-columns: 1fr 1fr; }
+.opts.mm-wish button.wide { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; height: 56px; padding: 0 10px; }
+.mm-wish .mm-suit { font-size: 1.2rem; padding: 0 9px; }
+.mm-wish small { color: var(--muted); font-weight: 600; }
+
+/* Platzierung am Ende */
+.mm-result .res-head { margin: 0; }
+
+@media (max-width: 600px) {
+  .mm-info { font-size: 0.88rem; }
+}

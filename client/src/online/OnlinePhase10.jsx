@@ -20,8 +20,11 @@ function Card({ id, sel, small, back, as, done, onClick }) {
   );
 }
 
+const NONE = []; // leere Hand des Fernsehers (immer dasselbe Array, sonst feuern die Effekte bei jedem Rendern)
+
 export default function OnlinePhase10({ room, me, socket, onLeave }) {
-  const s = room.state;
+  const tv = !!me.tv; // Fernseher: zeigt nur den Tisch, keine Hand
+  const s = tv ? { ...room.state, hand: NONE } : room.state;
   const mine = me.index;
   const running = s.stage === "draw" || s.stage === "play";
   const myTurn = s.cur === mine && running;
@@ -75,7 +78,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
     : running ? `${who.name} ist dran …` : "");
 
   return (
-    <main className="p10">
+    <main className={"p10" + (tv ? " tv" : "")}>
       <header>
         <button className="ghost" style={{ margin: 0 }} onClick={onLeave}>← Verlassen</button>
         <h1>Phase 10 · {room.code}</h1>
@@ -94,7 +97,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
       </table></div></section>
 
       <section className="panel">
-        <h3>Deine Phase {Math.min(s.phases[mine], 10)}: {PHASE_NAMES[Math.min(s.phases[mine], 10) - 1]}</h3>
+        <h3>{tv ? "Stapel und Ablage" : <>Deine Phase {Math.min(s.phases[mine], 10)}: {PHASE_NAMES[Math.min(s.phases[mine], 10) - 1]}</>}</h3>
         <div className="piles">
           <Card back onClick={myTurn && s.stage === "draw" ? () => act({ type: "draw", from: "deck" }) : undefined} />
           <Card id={s.discard} onClick={myTurn && s.stage === "draw" ? () => act({ type: "draw", from: "discard" }) : undefined} />
@@ -135,7 +138,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
       </section>
 
       {/* dock: Auf dem Handy klebt die Hand am unteren Bildschirmrand (index.css) */}
-      <section className="panel p10-hand dock">
+      {!tv && <section className="panel p10-hand dock">
         <h3>Deine Hand</h3>
         {done.ids.size > 0 && (
           <p className="legend">
@@ -169,7 +172,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
           </div>
         )}
         <p className="msg">{hint}</p>
-      </section>
+      </section>}
 
       </div>
 
@@ -189,7 +192,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
             })}
           </ol>
         </section>
-        <section className="panel">
+        {!tv && <section className="panel">
           <h3>Sonderkarten</h3>
           <div className="special">
             <Card id={96} small />
@@ -199,7 +202,7 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
             <Card id={104} small />
             <p><b>Aussetzen</b>: Beim Abwerfen wählst du einen Mitspieler, der seinen nächsten Zug auslässt. Die Karte kann nicht in Gruppen gelegt und nicht von der Ablage genommen werden. Strafpunkte: 15.</p>
           </div>
-        </section>
+        </section>}
       </aside>
       </div>
 
@@ -254,8 +257,9 @@ export default function OnlinePhase10({ room, me, socket, onLeave }) {
           <h2>{s.stage === "over" ? `${s.names[s.winner]} gewinnt!` : s.out === null ? "Alle haben ihre Phase geschafft!" : `${s.names[s.out]} ist fertig!`}</h2>
           <p>{s.names.map((n, i) => (
             <span key={i}>{n}: {s.scoring ? `+${s.points[i]} (gesamt ${s.scores[i]}) – ` : ""}{s.laid[i] ? "Phase geschafft" : "Phase nicht geschafft"} – {s.phases[i] > 10 ? "alle Phasen durch" : s.laid[i] ? `weiter mit Phase ${s.phases[i]}` : `bleibt bei Phase ${s.phases[i]}`}<br /></span>))}</p>
-          {s.stage === "between" && <div className="opts"><button className="wide on" onClick={() => act({ type: "next" })}>Nächste Runde</button></div>}
-          {s.stage === "over" && (me.index === 0
+          {s.stage === "between" && (tv ? <p>Die nächste Runde startet ihr am Handy.</p>
+            : <div className="opts"><button className="wide on" onClick={() => act({ type: "next" })}>Nächste Runde</button></div>)}
+          {s.stage === "over" && (me.host
             ? <div className="opts"><button className="wide on" onClick={() => socket.emit("start")}>Nochmal spielen</button><button className="wide" onClick={() => socket.emit("lobby")}>Etwas anderes spielen</button></div>
             : <p>Warte auf den Host …</p>)}
           <button className="ghost" onClick={onLeave}>Raum verlassen</button>
